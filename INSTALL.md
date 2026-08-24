@@ -69,7 +69,7 @@ right click the toolbar icon → Options → "View full setup instructions".)
    for separate Client IDs per browser.
 5. Save, then copy both the Client ID (ends in `.apps.googleusercontent.com`)
    and the Client Secret (starts with `GOCSPX-`) Google generated
-   alongside it - both get pasted into the extension's Options page. Save both these keys in a password manager or someplace you can reference them easily for future installs and setting up on other computers/browsers.<br><br>
+   alongside it - both get pasted into the extension's Options page.<br><br>
 <img width="586" height="312" alt="install15-clientidvalue" src="https://github.com/user-attachments/assets/f1752d22-0aff-44c2-98dc-c0c1c44241f0" /><br>
 
 ## Part 4: Install the extension
@@ -111,7 +111,7 @@ addons.mozilla.org.
    client from Part 3.<br><br>
 <img width="373" height="343" alt="install16-menu" src="https://github.com/user-attachments/assets/e461a559-f6cb-40e5-9449-b4ec6fe0e163" /><br>
 <img width="371" height="467" alt="install17-settings" src="https://github.com/user-attachments/assets/bf126b6f-27b0-4c7b-9f38-3d364df39d6e" /><br>
-<img width="679" height="1024" alt="install18-setup" src="https://github.com/user-attachments/assets/eca6f873-3661-43a8-b6b4-99113a7a8d1c" /><br>
+<img width="662" height="747" alt="install18-setup" src="https://github.com/user-attachments/assets/29503f09-8a44-421f-ae9c-5afc7e9abf8b" /><br>
 
 ## Part 6: First run
 
