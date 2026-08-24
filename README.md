@@ -1,7 +1,7 @@
 # Easy Bookmark Sync 
 (open the [INSTALL.md](./INSTALL.md) for first run instructions)
 
-A browser extension for Chrome and Edge that syncs bookmarks between your
+A browser extension for Chrome, Edge and Firefox that syncs bookmarks between your
 own computers through your own Google Drive. One computer is the **Master
 Sync Source** (bookmarks get pushed up from here), and any number of other
 computers can be a **Destination Sync** (bookmarks get pulled down and
