@@ -90,7 +90,8 @@ h1 {
   margin: 20px 0 6px;
 }
 
-#clientIdInput {
+#clientIdInput,
+#clientSecretInput {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid #d1d5db;

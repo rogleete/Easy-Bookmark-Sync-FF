@@ -1,7 +1,7 @@
 # Easy Bookmark Sync 
 (open the [INSTALL.md](./INSTALL.md) for first run instructions)
 
-A browser extension for Chrome, Edge and Firefox that syncs bookmarks between your
+A browser extension for Chrome, Edge, and Firefox that syncs bookmarks between your
 own computers through your own Google Drive. One computer is the **Master
 Sync Source** (bookmarks get pushed up from here), and any number of other
 computers can be a **Destination Sync** (bookmarks get pulled down and
@@ -74,9 +74,20 @@ Options page.
 4. One Client ID can hold multiple redirect URIs, so both of the above
    (plus any unpacked dev ID) can live on this same OAuth client - no need
    for separate Client IDs per browser.
-5. Save, then copy the Client ID (ends in `.apps.googleusercontent.com`).
+5. Save, then copy both the Client ID (ends in `.apps.googleusercontent.com`)
+   and the Client Secret (starts with `GOCSPX-`) Google generated
+   alongside it - both get pasted into the extension's Options page.
 
-### Part 4: Load the extension
+### Part 4: Install the extension
+
+Most people should just install this from the store for their browser -
+Chrome Web Store, Edge Add-ons, or Firefox Add-ons - the normal way,
+with one click. Nothing below in this section applies to you if you did
+that; skip straight to Part 5.
+
+**Only if you downloaded the code directly from GitHub instead** (for
+development, testing, or before it's published) do you need to load it
+manually:
 
 **Chrome:** go to `chrome://extensions`, turn on Developer mode, click
 **Load unpacked**, select this repo's folder.
@@ -84,17 +95,25 @@ Options page.
 **Edge:** go to `edge://extensions`, turn on Developer mode, click **Load
 unpacked**, select the same folder.
 
-### Part 5: Paste the Client ID
+**Firefox:** go to `about:debugging#/runtime/this-firefox`, click **Load
+Temporary Add-on**, select `manifest.json` inside the
+[Easy-Bookmark-Sync-FF](https://github.com/rogleete/Easy-Bookmark-Sync-FF)
+repo folder (Firefox needs its own manifest, different from the
+Chrome/Edge one in this repo). Note this only lasts until Firefox closes -
+it needs reloading each session unless it's actually installed from
+addons.mozilla.org.
+
+### Part 5: Paste the Client ID and Client Secret
 
 1. Right-click the toolbar icon → **Options**.
-2. The redirect URI shown there should already match one of the two URIs
-   you added in Part 3 (Chrome Web Store or Edge Add-ons) - nothing more
-   to add there if so.
-3. Paste the Client ID from Part 3 into the field on the Options page and
-   click **Save**.
-4. Repeat on a second browser if you're using one - same Client ID, since
-   both stores' redirect URIs are already on that OAuth client from
-   Part 3.
+2. The redirect URI shown there should already match one of the three
+   URIs you added in Part 3 (Chrome Web Store, Edge Add-ons, or Firefox) -
+   nothing more to add there if so.
+3. Paste both the Client ID and Client Secret from Part 3 into the fields
+   on the Options page and click **Save**.
+4. Repeat on a second browser if you're using one - same Client ID and
+   Secret, since both stores' redirect URIs are already on that OAuth
+   client from Part 3.
 
 ### Part 6: First run
 

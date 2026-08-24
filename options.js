@@ -1,4 +1,5 @@
 const clientIdInput = document.getElementById('clientIdInput');
+const clientSecretInput = document.getElementById('clientSecretInput');
 const saveButton = document.getElementById('saveButton');
 const saveMessage = document.getElementById('saveMessage');
 const redirectUriText = document.getElementById('redirectUriText');
@@ -15,19 +16,26 @@ copyRedirectButton.addEventListener('click', async () => {
   setTimeout(() => { copyRedirectButton.textContent = original; }, 1500);
 });
 
-async function loadClientId() {
-  const { googleClientId } = await chrome.storage.local.get('googleClientId');
+async function loadCredentials() {
+  const { googleClientId, googleClientSecret } = await chrome.storage.local.get([
+    'googleClientId',
+    'googleClientSecret'
+  ]);
   if (googleClientId) {
     clientIdInput.value = googleClientId;
+  }
+  if (googleClientSecret) {
+    clientSecretInput.value = googleClientSecret;
   }
 }
 
 saveButton.addEventListener('click', async () => {
-  const value = clientIdInput.value.trim();
-  await chrome.storage.local.set({ googleClientId: value });
-  saveMessage.textContent = value ? 'Saved.' : 'Cleared.';
+  const clientId = clientIdInput.value.trim();
+  const clientSecret = clientSecretInput.value.trim();
+  await chrome.storage.local.set({ googleClientId: clientId, googleClientSecret: clientSecret });
+  saveMessage.textContent = clientId || clientSecret ? 'Saved.' : 'Cleared.';
   saveMessage.classList.remove('hidden');
   setTimeout(() => saveMessage.classList.add('hidden'), 2000);
 });
 
-loadClientId();
+loadCredentials();

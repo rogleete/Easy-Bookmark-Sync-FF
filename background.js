@@ -17,6 +17,7 @@ const DEFAULT_STATE = {
   role: null, // 'master' or 'destination'
   accessToken: null,
   tokenExpiresAt: 0,
+  refreshToken: null,
   folderId: null,
   fileId: null,
   syncInterval: 'realtime',
@@ -73,72 +74,186 @@ function setState(patch) {
 }
 
 // ---------- auth ----------
+//
+// Uses the OAuth Authorization Code flow with PKCE instead of the old
+// implicit flow. The implicit flow only ever hands back a short-lived
+// access token (~1hr) with no way to renew it except redoing an
+// interactive or silent browser-based sign-in - and the silent version
+// only works if Google's session cookie is still around, which breaks
+// down with third-party cookie blocking (Firefox in particular) or if the
+// browser's Google session simply expired. This flow instead exchanges
+// the authorization code for a genuine refresh token once, up front, and
+// every renewal after that is a plain HTTP request straight to Google's
+// token endpoint - no cookies, no browser UI, no popups, ever again.
+//
+// Google requires a client secret for this exchange even with PKCE for
+// "Web application" type OAuth clients (PKCE alone isn't enough to skip
+// it the way it can for mobile/native app client types). Since each
+// person connects their own personal Google Cloud project already, they
+// paste their own Client Secret into Options right alongside their
+// Client ID - same trust boundary as before, it never leaves their own
+// browser talking to Google.
 
-function buildAuthUrl(clientId, interactive) {
-  const redirectUri = chrome.identity.getRedirectURL();
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: 'token',
-    redirect_uri: redirectUri,
-    scope: GOOGLE_SCOPE
-  });
-  if (!interactive) {
-    params.set('prompt', 'none');
+async function getClientCredentials() {
+  const { googleClientId, googleClientSecret } = await chrome.storage.local.get([
+    'googleClientId',
+    'googleClientSecret'
+  ]);
+  return {
+    clientId: (googleClientId || '').trim(),
+    clientSecret: (googleClientSecret || '').trim()
+  };
+}
+
+function base64UrlEncode(buffer) {
+  let str = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    str += String.fromCharCode(bytes[i]);
   }
-  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-async function getClientId() {
-  const { googleClientId } = await chrome.storage.local.get('googleClientId');
-  return (googleClientId || '').trim();
+function generateCodeVerifier() {
+  const array = new Uint8Array(64);
+  crypto.getRandomValues(array);
+  return base64UrlEncode(array.buffer);
 }
 
-function authenticate(interactive) {
-  return new Promise(async (resolve, reject) => {
-    const clientId = await getClientId();
-    if (!clientId) {
-      reject(new Error('No Google Client ID set yet - add one on the extension\'s Options page'));
-      return;
-    }
-    chrome.identity.launchWebAuthFlow(
-      { url: buildAuthUrl(clientId, interactive), interactive },
-      async (redirectUrl) => {
-        if (chrome.runtime.lastError || !redirectUrl) {
-          reject(chrome.runtime.lastError || new Error('No redirect URL came back'));
-          return;
-        }
-        const hash = redirectUrl.split('#')[1] || '';
-        const params = new URLSearchParams(hash);
-        const token = params.get('access_token');
-        const expiresIn = parseInt(params.get('expires_in') || '3600', 10);
-        if (!token) {
-          reject(new Error('Google did not return an access token'));
-          return;
-        }
-        const expiresAt = Date.now() + (expiresIn - 60) * 1000; // shave a minute off to be safe
-        await setState({ accessToken: token, tokenExpiresAt: expiresAt });
-        resolve(token);
-      }
-    );
+async function generateCodeChallenge(verifier) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return base64UrlEncode(digest);
+}
+
+// full interactive sign-in - only ever called from a direct user action
+// (Connect, or Sync now with no refresh token available). Always prompts
+// for consent so Google reliably hands back a refresh token every time,
+// not just on the very first authorization.
+async function authorizeWithGoogle() {
+  const { clientId, clientSecret } = await getClientCredentials();
+  if (!clientId || !clientSecret) {
+    throw new Error("Add your Google Client ID and Client Secret on the extension's Options page first");
+  }
+
+  const redirectUri = chrome.identity.getRedirectURL();
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+  const authParams = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    redirect_uri: redirectUri,
+    scope: GOOGLE_SCOPE,
+    access_type: 'offline',
+    prompt: 'consent',
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256'
   });
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${authParams.toString()}`;
+
+  const redirectUrl = await new Promise((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow({ url: authUrl, interactive: true }, (result) => {
+      if (chrome.runtime.lastError || !result) {
+        reject(chrome.runtime.lastError || new Error('No redirect URL came back'));
+        return;
+      }
+      resolve(result);
+    });
+  });
+
+  const redirectParams = new URL(redirectUrl).searchParams;
+  const authError = redirectParams.get('error');
+  if (authError) {
+    throw new Error(`Google sign-in was not completed: ${authError}`);
+  }
+  const code = redirectParams.get('code');
+  if (!code) {
+    throw new Error('Google did not return an authorization code');
+  }
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+      code_verifier: codeVerifier,
+      grant_type: 'authorization_code',
+      redirect_uri: redirectUri
+    })
+  });
+  if (!tokenRes.ok) {
+    const text = await tokenRes.text().catch(() => '');
+    throw new Error(`Google token exchange failed: ${text}`);
+  }
+
+  const data = await tokenRes.json();
+  const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
+  const patch = { accessToken: data.access_token, tokenExpiresAt: expiresAt };
+  if (data.refresh_token) {
+    patch.refreshToken = data.refresh_token;
+  }
+  await setState(patch);
+  return data.access_token;
 }
 
-// Returns a usable token, refreshing quietly in the background if the old
-// one has expired. Only falls back to an interactive popup if silent
-// refresh genuinely fails (e.g. the Google session cookie is gone too).
+// plain HTTP request to Google's token endpoint - no browser UI involved
+// at all, so this works regardless of cookies, third-party cookie
+// blocking, or whether the browser has an active Google session.
+async function refreshAccessToken() {
+  const { clientId, clientSecret } = await getClientCredentials();
+  const state = await getState();
+  if (!clientId || !clientSecret || !state.refreshToken) {
+    throw new Error('No refresh token available - reconnect your Google account');
+  }
+
+  const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: state.refreshToken,
+      grant_type: 'refresh_token'
+    })
+  });
+  if (!tokenRes.ok) {
+    const text = await tokenRes.text().catch(() => '');
+    throw new Error(`Token refresh failed: ${text}`);
+  }
+
+  const data = await tokenRes.json();
+  const expiresAt = Date.now() + (data.expires_in - 60) * 1000;
+  await setState({ accessToken: data.access_token, tokenExpiresAt: expiresAt });
+  return data.access_token;
+}
+
+// Returns a usable token. Tries the cached one first, then a silent
+// refresh-token exchange (works regardless of cookies or browser UI),
+// and only falls back to a full interactive sign-in - which pops a
+// window - when explicitly allowed (i.e. a direct user action, never a
+// background-triggered sync).
 async function getValidToken(allowInteractive) {
   const state = await getState();
   if (state.accessToken && Date.now() < state.tokenExpiresAt) {
     return state.accessToken;
   }
-  try {
-    return await authenticate(false);
-  } catch (silentError) {
-    if (!allowInteractive) {
-      throw silentError;
+  if (state.refreshToken) {
+    try {
+      return await refreshAccessToken();
+    } catch (refreshError) {
+      if (!allowInteractive) {
+        throw refreshError;
+      }
+      // refresh token itself is no longer valid (revoked, expired from
+      // long disuse) - fall through to a full reauthorization below
     }
-    return await authenticate(true);
   }
+  if (!allowInteractive) {
+    throw new Error('Google sign-in expired');
+  }
+  return await authorizeWithGoogle();
 }
 
 // ---------- Drive REST calls ----------
@@ -495,11 +610,11 @@ async function performSync(reason) {
   const state = await getState();
 
   // only a user directly clicking "Sync now" (or Connect, which goes
-  // through authenticate() separately) is allowed to pop an interactive
-  // sign-in window. Anything background-triggered - the alarm or a
-  // bookmark change - only ever tries a silent refresh, and fails quietly
-  // if that doesn't work, instead of surprising someone with a Google
-  // sign-in tab they never asked for.
+  // through authorizeWithGoogle() separately) is allowed to pop an
+  // interactive sign-in window. Anything background-triggered - the alarm
+  // or a bookmark change - only ever tries a silent token refresh, and
+  // fails quietly if that doesn't work, instead of surprising someone
+  // with a Google sign-in tab they never asked for.
   const allowInteractive = reason === 'manual';
 
   try {
@@ -645,7 +760,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       case 'connectGoogle': {
         try {
-          await authenticate(true);
+          await authorizeWithGoogle();
           await getOrCreateFolder(await getValidToken(true));
           sendResponse({ ok: true });
         } catch (err) {

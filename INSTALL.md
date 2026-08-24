@@ -67,10 +67,21 @@ right click the toolbar icon → Options → "View full setup instructions".)
 4. One Client ID can hold multiple redirect URIs, so both of the above
    (plus any unpacked dev ID) can live on this same OAuth client - no need
    for separate Client IDs per browser.
-5. Save, then copy the Client ID (ends in `.apps.googleusercontent.com`).<br><br>
+5. Save, then copy both the Client ID (ends in `.apps.googleusercontent.com`)
+   and the Client Secret (starts with `GOCSPX-`) Google generated
+   alongside it - both get pasted into the extension's Options page.<br><br>
 <img width="586" height="312" alt="install15-clientidvalue" src="https://github.com/user-attachments/assets/f1752d22-0aff-44c2-98dc-c0c1c44241f0" /><br>
 
-## Part 4: Load the extension
+## Part 4: Install the extension
+
+Most people should just install this from the store for their browser -
+Chrome Web Store, Edge Add-ons, or Firefox Add-ons - the normal way, with
+one click. Nothing below in this section applies to you if you did that;
+skip straight to Part 5.
+
+**Only if you downloaded the code directly from GitHub instead** (for
+development, testing, or before it's published) do you need to load it
+manually:
 
 **Chrome:** go to `chrome://extensions`, turn on Developer mode, click
 **Load unpacked**, select the `easy-bookmark-sync` folder.
@@ -78,18 +89,26 @@ right click the toolbar icon → Options → "View full setup instructions".)
 **Edge:** go to `edge://extensions`, turn on Developer mode, click **Load
 unpacked**, select the same folder.
 
-## Part 5: Paste the Client ID<br>
+**Firefox:** go to `about:debugging#/runtime/this-firefox`, click **Load
+Temporary Add-on**, select `manifest.json` from the
+[Easy-Bookmark-Sync-FF](https://github.com/rogleete/Easy-Bookmark-Sync-FF)
+repo folder (Firefox needs its own manifest, different from the
+Chrome/Edge one). This only lasts until Firefox closes - it needs
+reloading each session unless it's actually installed from
+addons.mozilla.org.
+
+## Part 5: Paste the Client ID and Client Secret<br>
 
 1. Right-click the toolbar icon → **Options** (or open it from the popup's
    setup screen).
-2. The redirect URI shown there should already match one of the two URIs
-   you added in Part 3 (Chrome Web Store or Edge Add-ons) - nothing more
-   to add there if so.
-3. Paste the Client ID from Part 3 into the field on the Options page and
-   click **Save**.
-4. Repeat on a second browser if you're using one - same Client ID, since
-   both stores' redirect URIs are already on that OAuth client from
-   Part 3.<br><br>
+2. The redirect URI shown there should already match one of the three
+   URIs you added in Part 3 (Chrome Web Store, Edge Add-ons, or Firefox) -
+   nothing more to add there if so.
+3. Paste both the Client ID and Client Secret from Part 3 into the fields
+   on the Options page and click **Save**.
+4. Repeat on a second browser if you're using one - same Client ID and
+   Secret, since both stores' redirect URIs are already on that OAuth
+   client from Part 3.<br><br>
 <img width="373" height="343" alt="install16-menu" src="https://github.com/user-attachments/assets/e461a559-f6cb-40e5-9449-b4ec6fe0e163" /><br>
 <img width="371" height="467" alt="install17-settings" src="https://github.com/user-attachments/assets/bf126b6f-27b0-4c7b-9f38-3d364df39d6e" /><br>
 <img width="662" height="747" alt="install18-setup" src="https://github.com/user-attachments/assets/29503f09-8a44-421f-ae9c-5afc7e9abf8b" /><br>

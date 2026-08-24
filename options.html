@@ -44,10 +44,22 @@
         Copy the Client ID Google gives you (it ends in
         <code>.apps.googleusercontent.com</code>) and paste it below.
       </li>
+      <li>
+        On the same credentials screen, also copy the <strong>Client
+        Secret</strong> Google generated alongside it, and paste that below
+        too. Google requires this for the sign-in method this extension
+        uses so that it can renew itself automatically without asking you
+        to sign in again every hour - it stays on this computer and is
+        never sent anywhere but Google.
+      </li>
     </ol>
 
     <label class="fieldLabel" for="clientIdInput">Google OAuth Client ID</label>
     <input type="text" id="clientIdInput" placeholder="123456789-abc123.apps.googleusercontent.com">
+
+    <label class="fieldLabel" for="clientSecretInput">Google OAuth Client Secret</label>
+    <input type="password" id="clientSecretInput" placeholder="GOCSPX-..." autocomplete="off">
+
     <button id="saveButton" class="primary">Save</button>
     <p id="saveMessage" class="saveMessage hidden"></p>
 

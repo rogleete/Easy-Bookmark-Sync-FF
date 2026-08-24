@@ -90,22 +90,30 @@
         above (plus any unpacked dev ID) can live on this same OAuth
         client - no need for separate Client IDs per browser.
       </li>
-      <li>Save, then copy the Client ID (ends in <code>.apps.googleusercontent.com</code>).</li>
+      <li>Save, then copy both the Client ID (ends in <code>.apps.googleusercontent.com</code>) and the Client Secret (starts with <code>GOCSPX-</code>) Google generated alongside it - both get pasted into the extension's Options page.</li>
     </ol>
     <p class="shots">
       <img src="https://github.com/user-attachments/assets/f1752d22-0aff-44c2-98dc-c0c1c44241f0" alt="Copy the Client ID">
     </p>
 
-    <h2>Part 4: Load the extension</h2>
+    <h2>Part 4: Install the extension</h2>
+    <p>
+      Most people should just install this from the store for their
+      browser - Chrome Web Store, Edge Add-ons, or Firefox Add-ons - the
+      normal way, with one click. Nothing below in this section applies
+      to you if you did that; skip straight to Part 5.
+    </p>
+    <p><strong>Only if you downloaded the code directly from GitHub instead</strong> (for development, testing, or before it's published) do you need to load it manually:</p>
     <p><strong>Chrome:</strong> go to <code>chrome://extensions</code>, turn on Developer mode, click Load unpacked, select the extension folder.</p>
     <p><strong>Edge:</strong> go to <code>edge://extensions</code>, turn on Developer mode, click Load unpacked, select the same folder.</p>
+    <p><strong>Firefox:</strong> go to <code>about:debugging#/runtime/this-firefox</code>, click Load Temporary Add-on, select <code>manifest.json</code> from the <a href="https://github.com/rogleete/Easy-Bookmark-Sync-FF" target="_blank" rel="noopener">Easy-Bookmark-Sync-FF</a> repo folder (Firefox needs its own manifest, different from the Chrome/Edge one). This only lasts until Firefox closes - it needs reloading each session unless it's actually installed from addons.mozilla.org.</p>
 
-    <h2>Part 5: Paste the Client ID</h2>
+    <h2>Part 5: Paste the Client ID and Client Secret</h2>
     <ol>
       <li>Right-click the toolbar icon → <strong>Options</strong> (or open it from the popup's setup screen).</li>
-      <li>The redirect URI shown there should already match one of the two URIs you added in Part 3 (Chrome Web Store or Edge Add-ons) - nothing more to add there if so.</li>
-      <li>Paste the Client ID from Part 3 into the field on the Options page and click <strong>Save</strong>.</li>
-      <li>Repeat on a second browser if you're using one - same Client ID, since both stores' redirect URIs are already on that OAuth client from Part 3.</li>
+      <li>The redirect URI shown there should already match one of the three URIs you added in Part 3 (Chrome Web Store, Edge Add-ons, or Firefox) - nothing more to add there if so.</li>
+      <li>Paste both the Client ID and Client Secret from Part 3 into the fields on the Options page and click <strong>Save</strong>.</li>
+      <li>Repeat on a second browser if you're using one - same Client ID and Secret, since both stores' redirect URIs are already on that OAuth client from Part 3.</li>
     </ol>
     <p class="shots">
       <img src="https://github.com/user-attachments/assets/e461a559-f6cb-40e5-9449-b4ec6fe0e163" alt="Right-click the toolbar icon to find Options">
