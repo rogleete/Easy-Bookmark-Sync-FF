@@ -76,7 +76,7 @@ Options page.
    for separate Client IDs per browser.
 5. Save, then copy both the Client ID (ends in `.apps.googleusercontent.com`)
    and the Client Secret (starts with `GOCSPX-`) Google generated
-   alongside it - both get pasted into the extension's Options page.
+   alongside it - both get pasted into the extension's Options page. Save both these keys in a password manager or someplace you can reference them easily for future installs and setting up on other computers/browsers.
 
 ### Part 4: Install the extension
 
