@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Easy Bookmark Sync - Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="icons/icon48.png" alt="">
+      <h1>Easy Bookmark Sync - Setup</h1>
+    </header>
+
+    <p class="lead">
+      This extension talks straight to your own Google Drive, so it needs a
+      Google Cloud OAuth Client ID before it can sign in. It's a one-time,
+      five minute setup.
+    </p>
+
+    <ol class="steps">
+      <li>
+        Open the Google Cloud Console credentials page for your project (or
+        create a new project first if you don't have one yet).
+        <div class="linkRow">
+          <a id="consoleLink" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">
+            Open Google Cloud Console → Credentials
+          </a>
+        </div>
+      </li>
+      <li>
+        Create an OAuth client of type <strong>Web application</strong>, and
+        add the redirect URI below to its "Authorized redirect URIs" list.
+        If you use this extension in more than one browser (Chrome and Edge,
+        for example), come back to this page in each browser and add each
+        one's URI to the <em>same</em> OAuth client - one Client ID can hold
+        several redirect URIs.
+        <div class="redirectRow">
+          <code id="redirectUriText"></code>
+          <button id="copyRedirectButton" class="linkButton">Copy</button>
+        </div>
+      </li>
+      <li>
+        Copy the Client ID Google gives you (it ends in
+        <code>.apps.googleusercontent.com</code>) and paste it below.
+      </li>
+    </ol>
+
+    <label class="fieldLabel" for="clientIdInput">Google OAuth Client ID</label>
+    <input type="text" id="clientIdInput" placeholder="123456789-abc123.apps.googleusercontent.com">
+    <button id="saveButton" class="primary">Save</button>
+    <p id="saveMessage" class="saveMessage hidden"></p>
+
+    <div class="fullInstructions">
+      <a id="fullInstructionsLink" href="#" target="_blank" rel="noopener">View full setup instructions</a>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Easy Bookmark Sync - Setup Guide</title>
+  <link rel="stylesheet" href="install.css">
+</head>
+<body>
+  <div class="wrap">
+    <h1>Easy Bookmark Sync - Setup Guide</h1>
+    <p class="lead">
+      This extension talks directly to your own Google Drive - there's no
+      server in the middle. That means before it can work, you need a
+      (free) Google Cloud OAuth Client ID. It's about ten minutes, one time
+      only, and you don't need to touch any code - everything gets pasted
+      into the extension's Options page.
+    </p>
+
+    <h2>Part 1: Google Cloud project</h2>
+    <ol>
+      <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">console.cloud.google.com</a> and sign in with the Google account you want to sync bookmarks through.</li>
+      <li>Create a new project (top left project dropdown → New Project). Name it whatever you like, e.g. "Bookmark Sync".</li>
+      <li>Search the top bar for <strong>Google Drive API</strong> and click <strong>Enable</strong>.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/d2f9bc23-407a-4f56-abe8-753f7ad16955" alt="Create a new Google Cloud project">
+      <img src="https://github.com/user-attachments/assets/cf424cad-c894-4894-9a76-b8e9daef5641" alt="Name the new project">
+      <img src="https://github.com/user-attachments/assets/a26aee56-e729-461c-9249-e67cd8bb3143" alt="Select the project">
+      <img src="https://github.com/user-attachments/assets/36c7a462-453e-4f39-b2cd-97db00b99ad1" alt="Search for the Google Drive API">
+      <img src="https://github.com/user-attachments/assets/68acb464-b3be-4f6c-9ada-ac9c5b25c77d" alt="Enable the Google Drive API">
+    </p>
+
+    <h2>Part 2: OAuth consent screen</h2>
+    <ol>
+      <li>Go to <strong>APIs &amp; Services → OAuth consent screen</strong>.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/c60c3d2b-d70a-4dc8-b8b7-17304d9b8d4d" alt="Open the OAuth consent screen page">
+    </p>
+    <ol start="2">
+      <li>User type: <strong>External</strong> (Internal is fine too if you have a Workspace account).</li>
+      <li>Fill in an app name and your email for the support/developer contact fields. Everything else can stay blank.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/bbab2554-1297-4157-bdd1-1722014ee144" alt="App info fields">
+      <img src="https://github.com/user-attachments/assets/3cb5a150-40c1-48db-9e51-f2f8b800bcc6" alt="Audience selection">
+      <img src="https://github.com/user-attachments/assets/2ebb8369-c40c-45ec-8805-87b19becbf26" alt="Contact info fields">
+    </p>
+    <ol start="4">
+      <li>Scopes step: nothing to add manually.</li>
+      <li>Test users step: add the Google account email you'll actually use with the extension. While the app is in "Testing" mode, only accounts on this list can sign in - normal for a personal tool.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/cde73a31-d30d-4a29-9899-6be27a44e7dd" alt="Add a test user">
+    </p>
+
+    <h2>Part 3: OAuth Client ID</h2>
+    <ol>
+      <li>Go to <strong>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</strong>.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/c7b91294-e3f5-4257-ab0e-64931def25d8" alt="Create credentials menu">
+    </p>
+    <ol start="2">
+      <li>Application type: <strong>Web application</strong> (not "Chrome Extension" - that older client type isn't needed).</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/3eefe644-78fc-4af0-97bd-b0dbfeddd58f" alt="Create OAuth client ID form">
+    </p>
+    <ol start="3">
+      <li>
+        Under <strong>Authorized redirect URIs</strong>, add both of these
+        exact URIs (one per line) - they're fixed permanently now, tied to
+        the published listings, so this step won't need revisiting later:
+        <br><br>
+        <code>https://ohgafdieafmgfcahebkcbnpbnjopglfp.chromiumapp.org/</code> (Chrome Web Store)<br>
+        <code>https://iplgoihgbngdhmcbacjakppljbeepchk.chromiumapp.org/</code> (Edge Add-ons)<br>
+        <code>https://1dbba077862f3a0e4781d873ee0b7bdc66670fb4.extensions.allizom.org/</code> (Firefox)
+      </li>
+      <li>
+        Add both now even if you're only using one browser today - it
+        saves coming back to add the other one later. (If you're loading
+        the extension unpacked in Developer mode instead of installing it
+        from a store, its ID - and redirect URI - will be different; the
+        extension's Options page always shows the exact one to use for
+        whatever copy you're running.)
+      </li>
+      <li>
+        One Client ID can hold multiple redirect URIs, so both of the
+        above (plus any unpacked dev ID) can live on this same OAuth
+        client - no need for separate Client IDs per browser.
+      </li>
+      <li>Save, then copy the Client ID (ends in <code>.apps.googleusercontent.com</code>).</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/f1752d22-0aff-44c2-98dc-c0c1c44241f0" alt="Copy the Client ID">
+    </p>
+
+    <h2>Part 4: Load the extension</h2>
+    <p><strong>Chrome:</strong> go to <code>chrome://extensions</code>, turn on Developer mode, click Load unpacked, select the extension folder.</p>
+    <p><strong>Edge:</strong> go to <code>edge://extensions</code>, turn on Developer mode, click Load unpacked, select the same folder.</p>
+
+    <h2>Part 5: Paste the Client ID</h2>
+    <ol>
+      <li>Right-click the toolbar icon → <strong>Options</strong> (or open it from the popup's setup screen).</li>
+      <li>The redirect URI shown there should already match one of the two URIs you added in Part 3 (Chrome Web Store or Edge Add-ons) - nothing more to add there if so.</li>
+      <li>Paste the Client ID from Part 3 into the field on the Options page and click <strong>Save</strong>.</li>
+      <li>Repeat on a second browser if you're using one - same Client ID, since both stores' redirect URIs are already on that OAuth client from Part 3.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/e461a559-f6cb-40e5-9449-b4ec6fe0e163" alt="Right-click the toolbar icon to find Options">
+      <img src="https://github.com/user-attachments/assets/bf126b6f-27b0-4c7b-9f38-3d364df39d6e" alt="Options menu entry">
+      <img src="https://github.com/user-attachments/assets/29503f09-8a44-421f-ae9c-5afc7e9abf8b" alt="Options page with Client ID field">
+    </p>
+
+    <h2>Part 6: First run</h2>
+    <p>Do this on your <strong>master</strong> computer first (the one with the bookmarks you already have):</p>
+    <ol>
+      <li>Click the extension icon in the toolbar.</li>
+      <li>Check <strong>Master Sync Source</strong>.</li>
+      <li>Click <strong>Connect Google Account</strong> and approve access.</li>
+      <li>It creates an <code>EasyBookmarkSync</code> folder in Drive and does an initial upload.</li>
+    </ol>
+    <p>Then on any other computer you want to pull bookmarks down to:</p>
+    <ol>
+      <li>Load the extension there too (repeat Parts 4-5 for that browser if needed).</li>
+      <li>Click the extension icon, check <strong>Destination Sync</strong>.</li>
+      <li>Click <strong>Connect Google Account</strong> and sign in with the <em>same</em> Google account.</li>
+      <li>It pulls down whatever the master last uploaded, replacing local bookmarks.</li>
+    </ol>
+
+    <h2>How syncing behaves</h2>
+    <ul>
+      <li><strong>Manual:</strong> nothing happens automatically - only the "Sync now" button in the popup triggers a sync. Good for keeping full control over exactly when a sync happens.</li>
+      <li><strong>Master, Realtime:</strong> a real bookmark change (add/remove/edit/move) triggers a sync within a few seconds, plus a once-a-minute backstop check in case a change happened while the browser was closed.</li>
+      <li><strong>Destination, Realtime:</strong> checks the cloud roughly once a minute. A true instant push isn't possible without a server sitting in the middle watching for changes, so this is the closest practical equivalent.</li>
+      <li>Every sync fully replaces the target - no merging. Master overwrites the cloud copy; destination overwrites local bookmarks.</li>
+      <li>Checks that find nothing new don't touch Drive or your bookmarks at all - a real sync only happens when something actually changed.</li>
+      <li>The extension only asks for permission to see files <em>it</em> creates in Drive (the <code>drive.file</code> scope), not your whole Drive.</li>
+    </ul>
+
+    <h2>Manual backups</h2>
+    <p>
+      Separate from the automatic sync described above, <strong>Manual
+      Backup</strong> in the popup footer opens its own page where you can:
+    </p>
+    <ul>
+      <li><strong>Generate a separate Backup</strong> - saves a timestamped snapshot of every bookmark in this browser right now, into its own <code>Backups</code> folder inside <code>EasyBookmarkSync</code>. The automatic sync never reads or writes this folder.</li>
+      <li><strong>Browse and delete</strong> - every backup is listed with its date and bookmark count, each with its own delete button.</li>
+      <li><strong>Restore</strong> - pick a backup from the dropdown and restore it, replacing every current local bookmark with that snapshot. This asks for confirmation first since it can't be undone, and is only available on the <strong>Master Sync Source</strong> browser - a destination browser is just a mirror of the master, so restoring one wouldn't have anywhere to go once the next sync ran.</li>
+    </ul>
+
+    <h2>Troubleshooting</h2>
+    <ul>
+      <li><strong>Error 400: redirect_uri_mismatch</strong> - the redirect URI on the Options page doesn't exactly match one of the Authorized redirect URIs on your OAuth client. Double check for a missing trailing slash or http vs https.</li>
+      <li><strong>"No Google Client ID set yet"</strong> - paste one into the extension's Options page.</li>
+      <li><strong>Asks to sign in every single time</strong> - usually a mismatched redirect URI, or a browser profile blocking third-party cookies for accounts.google.com.</li>
+      <li><strong>"No bookmarks found in the cloud yet"</strong> on a destination browser - the master browser hasn't completed its first sync yet.</li>
+      <li><strong>A Google sign-in tab pops up unprompted</strong> - background syncs never force this anymore; if it happens, it's tied to clicking Sync now while your Google session has expired. Just sign in again when it appears.</li>
+    </ul>
+  </div>
+</body>
+</html>

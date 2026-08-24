@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Easy Bookmark Sync</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="">
+    <h1>Easy Bookmark Sync</h1>
+  </header>
+
+  <!-- shown on first run, or after the user hits "change settings" -->
+  <section id="setupView" class="hidden">
+    <div id="clientIdNotice" class="noticeBanner hidden">
+      This extension needs a one-time, free Google Cloud setup before it can sign in - it's about 10 minutes and doesn't require any coding.
+      <button id="openOptionsButton" class="linkButton noticeButton">Set it up</button>
+    </div>
+
+    <p class="intro">Pick what this computer does before connecting your Google account.</p>
+
+    <label class="roleOption">
+      <input type="checkbox" id="masterCheckbox">
+      <div>
+        <strong>Master Sync Source</strong>
+        <p>This is the computer your bookmarks get pushed up from. Only turn this on for one computer - it overwrites whatever is in the cloud with what's here.</p>
+      </div>
+    </label>
+
+    <label class="roleOption">
+      <input type="checkbox" id="destinationCheckbox">
+      <div>
+        <strong>Destination Sync</strong>
+        <p>This computer pulls bookmarks down from the cloud and replaces its local bookmarks with whatever the master last uploaded.</p>
+      </div>
+    </label>
+
+    <button id="connectButton" class="primary" disabled>Connect Google Account</button>
+    <p id="setupError" class="errorText hidden"></p>
+
+    <div class="setupHelp">
+      <button id="openOptionsButtonBottom" class="linkButton">Google sign-in setup / help</button>
+    </div>
+  </section>
+
+  <!-- normal day to day view once setup is done -->
+  <section id="mainView" class="hidden">
+    <div class="roleBadge">
+      <span id="roleLabel"></span>
+    </div>
+
+    <div class="statusBox">
+      <div id="statusLine">Not synced yet</div>
+      <div id="statsLine" class="statsLine"></div>
+    </div>
+
+    <button id="syncButton" class="primary">Sync now</button>
+
+    <label class="fieldLabel" for="intervalSelect">Sync frequency</label>
+    <select id="intervalSelect"></select>
+
+    <div class="footerLinks">
+      <button id="changeSettingsButton" class="linkButton">Change settings</button>
+      <a id="manualBackupLink" href="#" target="_blank" rel="noopener" class="backupLink">Manual Backup</a>
+      <button id="signOutButton" class="linkButton">Disconnect</button>
+    </div>
+  </section>
+
+  <script src="config.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

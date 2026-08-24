@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Easy Bookmark Sync",
+  "version": "1.0.0",
+  "description": "Syncs bookmarks between computers through your own Google Drive.",
+  "permissions": [
+    "bookmarks",
+    "storage",
+    "alarms",
+    "identity"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "scripts": ["config.js", "background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "easy-bookmark-sync@rogleete.github.io",
+      "strict_min_version": "109.0"
+    }
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Easy Bookmark Sync - Manual Backups</title>
+  <link rel="stylesheet" href="backup.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="icons/icon48.png" alt="">
+      <h1>Manual Backups</h1>
+    </header>
+
+    <p class="lead">
+      These are separate, permanent snapshots you create yourself - they
+      live in their own folder in Drive and are never touched by the
+      regular automatic sync. Good for having a fixed point to fall back
+      to if something ever goes sideways with the live sync.
+    </p>
+
+    <button id="createButton" class="primary">Generate a separate Backup</button>
+    <p id="createMessage" class="message hidden"></p>
+
+    <h2>Existing backups</h2>
+    <div id="backupList" class="backupList"></div>
+    <p id="emptyMessage" class="emptyMessage hidden">No backups yet - click "Generate a separate Backup" above to create one.</p>
+
+    <h2>Restore a backup</h2>
+    <p class="warn">Restoring replaces every bookmark currently in this browser with what's in the selected backup. This can't be undone.</p>
+    <p id="destinationNotice" class="destinationNotice hidden">Restoring a backup is only available on the Master Sync Source browser. This computer is set to Destination Sync, so it only ever pulls bookmarks down from the live sync file.</p>
+    <select id="restoreSelect" class="hidden"></select>
+    <button id="restoreButton" class="primary danger">Restore selected backup</button>
+    <p id="restoreMessage" class="message hidden"></p>
+  </div>
+
+  <script src="backup.js"></script>
+</body>
+</html>
