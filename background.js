@@ -1215,11 +1215,6 @@ async function runMergeSync(token, folderId, state) {
   let remoteData = { folders: [], bookmarks: [], tombstones: [] };
   let forceReseed = false;
 
-  console.log(
-    `[EasyBookmarkSync] merge sync start: folder=${folderId}, cachedMergeFileId=${mergeFileId || 'none'}, ` +
-      `remoteExists=${remoteExists}, mergeBootstrapped=${state.mergeBootstrapped}, localMergeIndexSize=${Object.keys(state.mergeIndex || {}).length}`
-  );
-
   if (remoteExists) {
     try {
       remoteData = await downloadMergeFile(token, mergeFileId);
@@ -1659,13 +1654,7 @@ async function runMergeSync(token, folderId, state) {
       .map((e) => ({ stableId: e.stableId, url: e.url, title: e.title, parentRef: e.parentRef, lastModified: e.lastSyncedModified, deviceLabel })),
     tombstones: Object.entries(tombstones).map(([stableId, t]) => ({ stableId, deletedAt: t.deletedAt, deviceLabel: t.deviceLabel }))
   };
-  const wasCreatingNewFile = !mergeFileId;
-  const uploadedFileId = await uploadMergeFile(token, folderId, mergeFileId, payload);
-  console.log(
-    `[EasyBookmarkSync] merge upload: ${wasCreatingNewFile ? 'created new file' : 'updated existing file'} ` +
-      `id=${uploadedFileId} in folder=${folderId}, ${payload.bookmarks.length} bookmarks, ${payload.folders.length} folders`
-  );
-  mergeFileId = uploadedFileId;
+  mergeFileId = await uploadMergeFile(token, folderId, mergeFileId, payload);
 
   await setState({ mergeFileId, mergeIndex, tombstones, conflicts });
 
