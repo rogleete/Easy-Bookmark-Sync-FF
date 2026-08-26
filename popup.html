@@ -36,6 +36,14 @@
       </div>
     </label>
 
+    <label class="roleOption">
+      <input type="checkbox" id="mergeCheckbox">
+      <div>
+        <strong>Merge (Two-Way)</strong>
+        <p>Bookmarks flow both ways between every computer set to Merge - add one here, it shows up everywhere; delete one, it's gone everywhere. Syncs to its own separate file, so it never touches a Master/Destination setup on other computers.</p>
+      </div>
+    </label>
+
     <button id="connectButton" class="primary" disabled>Connect Google Account</button>
     <p id="setupError" class="errorText hidden"></p>
 
@@ -50,15 +58,52 @@
       <span id="roleLabel"></span>
     </div>
 
-    <div class="statusBox">
-      <div id="statusLine">Not synced yet</div>
-      <div id="statsLine" class="statsLine"></div>
+    <div class="tabBar">
+      <button type="button" class="tabButton active" id="statusTabButton">Status</button>
+      <button type="button" class="tabButton" id="activityTabButton">Activity</button>
+      <button type="button" class="tabButton hidden" id="troubleshootingTabButton">Troubleshooting</button>
+      <button type="button" class="tabButton hidden" id="conflictsTabButton">Conflicts<span id="conflictsCount" class="tabCount"></span></button>
     </div>
 
-    <button id="syncButton" class="primary">Sync now</button>
+    <div id="statusTab" class="tabPanel">
+      <div class="statusBox">
+        <div id="statusLine">Not synced yet</div>
+        <div id="statsLine" class="statsLine"></div>
+      </div>
 
-    <label class="fieldLabel" for="intervalSelect">Sync frequency</label>
-    <select id="intervalSelect"></select>
+      <button id="syncButton" class="primary">Sync now</button>
+
+      <label class="fieldLabel" for="intervalSelect">Sync frequency</label>
+      <select id="intervalSelect"></select>
+    </div>
+
+    <div id="activityTab" class="tabPanel hidden">
+      <div id="activityList" class="activityList"></div>
+      <p id="activityEmpty" class="emptyMessage hidden">No activity yet.</p>
+    </div>
+
+    <div id="troubleshootingTab" class="tabPanel hidden">
+      <p class="intro">
+        If this device's sync tracking ever seems confused - things that
+        should be synced aren't, or you're seeing sync errors that don't
+        make sense - this re-derives it from scratch without touching any
+        of your actual bookmarks.
+      </p>
+      <p class="troubleshootingDetail">
+        This device will re-join the shared group the same way a brand
+        new device would: a safety backup first, then matching what's
+        already in the group against what's actually in your browser
+        right now. Nothing gets deleted by this on its own.
+      </p>
+      <button id="resetTrackingButton" class="primary danger">Reset merge tracking</button>
+      <p id="resetTrackingMessage" class="message hidden"></p>
+    </div>
+
+    <div id="conflictsTab" class="tabPanel hidden">
+      <p class="intro">Each of these changed differently on two computers before they synced. Pick which version to keep.</p>
+      <div id="conflictsList" class="conflictsList"></div>
+      <p id="conflictsEmpty" class="emptyMessage hidden">No conflicts.</p>
+    </div>
 
     <div class="footerLinks">
       <button id="changeSettingsButton" class="linkButton">Change settings</button>

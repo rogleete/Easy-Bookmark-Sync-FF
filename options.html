@@ -66,6 +66,17 @@
     <div class="fullInstructions">
       <a id="fullInstructionsLink" href="#" target="_blank" rel="noopener">View full setup instructions</a>
     </div>
+
+    <div class="deviceLabelSection">
+      <h2>Device label</h2>
+      <p class="lead">
+        Identifies this computer in backup names and, if you use Merge (Two-Way), in the Conflicts list. Defaults to something generic - worth setting to whatever actually helps you tell your devices apart, like "Work Laptop" or "Home Desktop".
+      </p>
+      <label class="fieldLabel" for="deviceLabelInput">Label for this computer</label>
+      <input type="text" id="deviceLabelInput" placeholder="e.g. Sam's Laptop">
+      <button id="saveDeviceLabelButton" class="primary">Save label</button>
+      <p id="deviceLabelMessage" class="saveMessage hidden"></p>
+    </div>
   </div>
 
   <script src="options.js"></script>

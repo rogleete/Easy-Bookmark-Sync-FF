@@ -2,6 +2,7 @@ const setupView = document.getElementById('setupView');
 const mainView = document.getElementById('mainView');
 const masterCheckbox = document.getElementById('masterCheckbox');
 const destinationCheckbox = document.getElementById('destinationCheckbox');
+const mergeCheckbox = document.getElementById('mergeCheckbox');
 const connectButton = document.getElementById('connectButton');
 const setupError = document.getElementById('setupError');
 const roleLabel = document.getElementById('roleLabel');
@@ -15,6 +16,173 @@ const openOptionsButton = document.getElementById('openOptionsButton');
 const openOptionsButtonBottom = document.getElementById('openOptionsButtonBottom');
 const clientIdNotice = document.getElementById('clientIdNotice');
 const manualBackupLink = document.getElementById('manualBackupLink');
+const statusTabButton = document.getElementById('statusTabButton');
+const activityTabButton = document.getElementById('activityTabButton');
+const troubleshootingTabButton = document.getElementById('troubleshootingTabButton');
+const conflictsTabButton = document.getElementById('conflictsTabButton');
+const conflictsCount = document.getElementById('conflictsCount');
+const statusTab = document.getElementById('statusTab');
+const activityTab = document.getElementById('activityTab');
+const troubleshootingTab = document.getElementById('troubleshootingTab');
+const conflictsTab = document.getElementById('conflictsTab');
+const activityList = document.getElementById('activityList');
+const activityEmpty = document.getElementById('activityEmpty');
+const conflictsList = document.getElementById('conflictsList');
+const conflictsEmpty = document.getElementById('conflictsEmpty');
+const resetTrackingButton = document.getElementById('resetTrackingButton');
+const resetTrackingMessage = document.getElementById('resetTrackingMessage');
+
+function showTab(tabName) {
+  statusTab.classList.toggle('hidden', tabName !== 'status');
+  activityTab.classList.toggle('hidden', tabName !== 'activity');
+  troubleshootingTab.classList.toggle('hidden', tabName !== 'troubleshooting');
+  conflictsTab.classList.toggle('hidden', tabName !== 'conflicts');
+  statusTabButton.classList.toggle('active', tabName === 'status');
+  activityTabButton.classList.toggle('active', tabName === 'activity');
+  troubleshootingTabButton.classList.toggle('active', tabName === 'troubleshooting');
+  conflictsTabButton.classList.toggle('active', tabName === 'conflicts');
+}
+
+statusTabButton.addEventListener('click', () => showTab('status'));
+activityTabButton.addEventListener('click', () => showTab('activity'));
+troubleshootingTabButton.addEventListener('click', () => showTab('troubleshooting'));
+conflictsTabButton.addEventListener('click', () => showTab('conflicts'));
+
+const ACTIVITY_SOURCE_LABELS = { master: 'Push', destination: 'Pull', backup: 'Backup', restore: 'Restore' };
+
+function formatLogTime(ts) {
+  return new Date(ts).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function renderActivity(log) {
+  activityList.innerHTML = '';
+  if (!log || !log.length) {
+    activityEmpty.classList.remove('hidden');
+    return;
+  }
+  activityEmpty.classList.add('hidden');
+
+  for (const entry of log) {
+    const row = document.createElement('div');
+    row.className = entry.ok === false ? 'activityRow activityError' : 'activityRow';
+
+    const top = document.createElement('div');
+    top.className = 'activityTop';
+    const source = document.createElement('span');
+    source.className = 'activitySource';
+    source.textContent = ACTIVITY_SOURCE_LABELS[entry.source] || entry.source || 'Sync';
+    const time = document.createElement('span');
+    time.className = 'activityTime';
+    time.textContent = formatLogTime(entry.time);
+    top.appendChild(source);
+    top.appendChild(time);
+
+    const message = document.createElement('div');
+    message.className = 'activityMessage';
+    let text = entry.message || '';
+    if (entry.ok !== false && typeof entry.total === 'number') {
+      text += ` (${entry.synced}/${entry.total})`;
+    }
+    message.textContent = text;
+
+    row.appendChild(top);
+    row.appendChild(message);
+    activityList.appendChild(row);
+  }
+}
+
+function conflictLocationText(side) {
+  if (!side) return '';
+  const folder = side.displayPath ? side.displayPath.replace(/#/g, '') : '(top level)';
+  return `${side.title || '(no title)'} - in ${folder}`;
+}
+
+function renderConflicts(conflicts) {
+  conflictsList.innerHTML = '';
+  const list = conflicts || [];
+  conflictsTabButton.classList.toggle('hidden', list.length === 0);
+  conflictsCount.textContent = list.length ? ` (${list.length})` : '';
+
+  if (!list.length) {
+    conflictsEmpty.classList.remove('hidden');
+    return;
+  }
+  conflictsEmpty.classList.add('hidden');
+
+  for (const c of list) {
+    const row = document.createElement('div');
+    row.className = 'conflictRow';
+
+    const kindEl = document.createElement('div');
+    kindEl.className = 'conflictUrl';
+    kindEl.textContent = c.kind === 'folder' ? `Folder` : c.url || '';
+    row.appendChild(kindEl);
+
+    const versions = document.createElement('div');
+    versions.className = 'conflictVersions';
+
+    const mine = document.createElement('div');
+    mine.className = 'conflictVersion';
+    const buttons = document.createElement('div');
+    buttons.className = 'conflictButtons';
+
+    if (c.type === 'edit-delete') {
+      const deletedHere = Boolean(c.local && c.local.deletedAt);
+      mine.innerHTML = deletedHere
+        ? `<strong>This computer</strong><br>Deleted`
+        : `<strong>${c.remote.deviceLabel || 'Other device'}</strong><br>${conflictLocationText(c.remote)}`;
+      versions.appendChild(mine);
+
+      const keepDeleteBtn = document.createElement('button');
+      keepDeleteBtn.className = 'primary danger';
+      keepDeleteBtn.textContent = 'Delete it';
+      keepDeleteBtn.addEventListener('click', () => resolve(c.id, 'delete'));
+
+      const restoreBtn = document.createElement('button');
+      restoreBtn.className = 'primary';
+      restoreBtn.textContent = 'Keep the edited version';
+      restoreBtn.addEventListener('click', () => resolve(c.id, 'restore'));
+
+      buttons.appendChild(keepDeleteBtn);
+      buttons.appendChild(restoreBtn);
+    } else {
+      mine.innerHTML = `<strong>This computer</strong><br>${conflictLocationText(c.local)}`;
+      const theirs = document.createElement('div');
+      theirs.className = 'conflictVersion';
+      theirs.innerHTML = `<strong>${c.remote.deviceLabel || 'Other device'}</strong><br>${conflictLocationText(c.remote)}`;
+      versions.appendChild(mine);
+      versions.appendChild(theirs);
+
+      const keepMineBtn = document.createElement('button');
+      keepMineBtn.className = 'linkButton';
+      keepMineBtn.textContent = 'Keep mine';
+      keepMineBtn.addEventListener('click', () => resolve(c.id, 'local'));
+
+      const keepTheirsBtn = document.createElement('button');
+      keepTheirsBtn.className = 'linkButton';
+      keepTheirsBtn.textContent = 'Keep theirs';
+      keepTheirsBtn.addEventListener('click', () => resolve(c.id, 'remote'));
+
+      const keepBothBtn = document.createElement('button');
+      keepBothBtn.className = 'primary';
+      keepBothBtn.textContent = 'Keep both';
+      keepBothBtn.addEventListener('click', () => resolve(c.id, 'both'));
+
+      buttons.appendChild(keepMineBtn);
+      buttons.appendChild(keepTheirsBtn);
+      buttons.appendChild(keepBothBtn);
+    }
+
+    row.appendChild(versions);
+    row.appendChild(buttons);
+    conflictsList.appendChild(row);
+  }
+}
+
+async function resolve(conflictId, resolution) {
+  await send({ type: 'resolveConflict', conflictId, resolution });
+  await render();
+}
 
 manualBackupLink.href = chrome.runtime.getURL('backup.html');
 
@@ -40,16 +208,28 @@ function send(message) {
 function pickedRole() {
   if (masterCheckbox.checked) return 'master';
   if (destinationCheckbox.checked) return 'destination';
+  if (mergeCheckbox.checked) return 'merge';
   return null;
 }
 
+function uncheckOthers(keep) {
+  for (const box of [masterCheckbox, destinationCheckbox, mergeCheckbox]) {
+    if (box !== keep) box.checked = false;
+  }
+}
+
 masterCheckbox.addEventListener('change', () => {
-  if (masterCheckbox.checked) destinationCheckbox.checked = false;
+  if (masterCheckbox.checked) uncheckOthers(masterCheckbox);
   connectButton.disabled = !pickedRole();
 });
 
 destinationCheckbox.addEventListener('change', () => {
-  if (destinationCheckbox.checked) masterCheckbox.checked = false;
+  if (destinationCheckbox.checked) uncheckOthers(destinationCheckbox);
+  connectButton.disabled = !pickedRole();
+});
+
+mergeCheckbox.addEventListener('change', () => {
+  if (mergeCheckbox.checked) uncheckOthers(mergeCheckbox);
   connectButton.disabled = !pickedRole();
 });
 
@@ -90,6 +270,7 @@ changeSettingsButton.addEventListener('click', async () => {
   const state = await send({ type: 'getState' });
   masterCheckbox.checked = state.role === 'master';
   destinationCheckbox.checked = state.role === 'destination';
+  mergeCheckbox.checked = state.role === 'merge';
   connectButton.disabled = !pickedRole();
   connectButton.textContent = 'Connect Google Account';
   mainView.classList.add('hidden');
@@ -112,6 +293,31 @@ function fillIntervalOptions() {
   }
 }
 
+resetTrackingButton.addEventListener('click', async () => {
+  if (
+    !confirm(
+      "Reset this device's merge tracking? It will re-join the shared group on the next sync, starting with a safety backup. No bookmarks are deleted by this."
+    )
+  ) {
+    return;
+  }
+  resetTrackingButton.disabled = true;
+  resetTrackingButton.textContent = 'Resetting...';
+  const res = await send({ type: 'resetMergeTracking' });
+  resetTrackingButton.disabled = false;
+  resetTrackingButton.textContent = 'Reset merge tracking';
+
+  if (!res.ok) {
+    resetTrackingMessage.textContent = res.error || 'Could not reset tracking';
+    resetTrackingMessage.classList.remove('hidden');
+    resetTrackingMessage.classList.add('errorText');
+    return;
+  }
+  resetTrackingMessage.textContent = 'Done - will re-join the group on the next sync.';
+  resetTrackingMessage.classList.remove('hidden', 'errorText');
+  render();
+});
+
 async function render() {
   const state = await send({ type: 'getState' });
 
@@ -125,13 +331,22 @@ async function render() {
   setupView.classList.add('hidden');
   mainView.classList.remove('hidden');
 
-  roleLabel.textContent = state.role === 'master' ? 'Master Sync Source' : 'Destination Sync';
+  const roleLabels = { master: 'Master Sync Source', destination: 'Destination Sync', merge: 'Merge (Two-Way)' };
+  roleLabel.textContent = roleLabels[state.role] || state.role;
 
   statusLine.textContent = state.status === 'syncing' ? 'Syncing...' : state.lastSyncMessage;
   const stats = state.lastStats || { synced: 0, total: 0 };
   statsLine.textContent = `${stats.total} bookmarks total, synced ${stats.synced}/${stats.total}`;
 
   intervalSelect.value = state.syncInterval;
+
+  troubleshootingTabButton.classList.toggle('hidden', state.role !== 'merge');
+  if (state.role !== 'merge' && !troubleshootingTab.classList.contains('hidden')) {
+    showTab('status');
+  }
+
+  renderActivity(state.syncLog);
+  renderConflicts(state.conflicts);
 }
 
 fillIntervalOptions();

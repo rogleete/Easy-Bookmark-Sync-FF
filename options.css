@@ -91,12 +91,24 @@ h1 {
 }
 
 #clientIdInput,
-#clientSecretInput {
+#clientSecretInput,
+#deviceLabelInput {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 13px;
+}
+
+.deviceLabelSection {
+  margin-top: 26px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.deviceLabelSection h2 {
+  font-size: 15px;
+  margin: 0 0 6px;
 }
 
 button.primary {

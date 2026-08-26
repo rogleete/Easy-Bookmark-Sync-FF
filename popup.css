@@ -85,6 +85,14 @@ button.primary:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
+button.primary.danger {
+  background: #dc2626;
+}
+
+button.primary.danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
 .errorText {
   color: #dc2626;
   font-size: 11.5px;
@@ -157,6 +165,155 @@ button.primary:hover:not(:disabled) {
   padding: 3px 8px;
   border-radius: 999px;
   margin-bottom: 10px;
+}
+
+.troubleshootingDetail {
+  font-size: 11.5px;
+  color: #6b7280;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.tabBar {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tabButton {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 12px;
+  padding: 6px 2px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tabButton.active {
+  color: #2563eb;
+  font-weight: 600;
+  border-bottom-color: #2563eb;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  margin-bottom: 4px;
+}
+
+.activityRow {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.activityRow.activityError {
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.activityTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #6b7280;
+}
+
+.activitySource {
+  font-weight: 600;
+  color: #374151;
+}
+
+.activityMessage {
+  font-size: 11.5px;
+  color: #1f2937;
+  margin-top: 2px;
+}
+
+.activityRow.activityError .activityMessage {
+  color: #b91c1c;
+}
+
+.emptyMessage {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.tabCount {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.conflictsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.conflictRow {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.conflictUrl {
+  font-size: 10.5px;
+  color: #92400e;
+  word-break: break-all;
+  margin-bottom: 6px;
+}
+
+.conflictVersions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.conflictVersion {
+  font-size: 11.5px;
+  color: #1f2937;
+  background: #ffffff;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 6px 8px;
+  line-height: 1.4;
+}
+
+.conflictButtons {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.conflictButtons .primary {
+  width: auto;
+  padding: 6px 12px;
+  margin-top: 0;
+  font-size: 11.5px;
+}
+
+.conflictButtons .primary.danger {
+  background: #dc2626;
+}
+
+.conflictButtons .primary.danger:hover {
+  background: #b91c1c;
+}
+
+.conflictButtons .linkButton {
+  font-weight: 600;
 }
 
 .statusBox {

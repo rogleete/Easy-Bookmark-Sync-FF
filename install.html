@@ -64,36 +64,34 @@
     <ol start="2">
       <li>Application type: <strong>Web application</strong> (not "Chrome Extension" - that older client type isn't needed).</li>
     </ol>
-    <p class="shots">
-      <img src="https://github.com/user-attachments/assets/3eefe644-78fc-4af0-97bd-b0dbfeddd58f" alt="Create OAuth client ID form">
-    </p>
     <ol start="3">
       <li>
-        Under <strong>Authorized redirect URIs</strong>, add both of these
-        exact URIs (one per line) - they're fixed permanently now, tied to
-        the published listings, so this step won't need revisiting later:
+        Under <strong>Authorized redirect URIs</strong>, add all three of
+        these exact URIs (one per line) - they're fixed permanently now,
+        tied to the published listings, so this step won't need
+        revisiting later:
         <br><br>
         <code>https://ohgafdieafmgfcahebkcbnpbnjopglfp.chromiumapp.org/</code> (Chrome Web Store)<br>
         <code>https://iplgoihgbngdhmcbacjakppljbeepchk.chromiumapp.org/</code> (Edge Add-ons)<br>
         <code>https://1dbba077862f3a0e4781d873ee0b7bdc66670fb4.extensions.allizom.org/</code> (Firefox)
       </li>
       <li>
-        Add both now even if you're only using one browser today - it
-        saves coming back to add the other one later. (If you're loading
+        Add all three now even if you're only using one browser today -
+        it saves coming back to add the others later. (If you're loading
         the extension unpacked in Developer mode instead of installing it
         from a store, its ID - and redirect URI - will be different; the
         extension's Options page always shows the exact one to use for
         whatever copy you're running.)
       </li>
       <li>
-        One Client ID can hold multiple redirect URIs, so both of the
-        above (plus any unpacked dev ID) can live on this same OAuth
+        One Client ID can hold multiple redirect URIs, so all three of
+        the above (plus any unpacked dev ID) can live on this same OAuth
         client - no need for separate Client IDs per browser.
       </li>
-      <li>Save, then copy both the Client ID (ends in <code>.apps.googleusercontent.com</code>) and the Client Secret (starts with <code>GOCSPX-</code>) Google generated alongside it - both get pasted into the extension's Options page.</li>
+      <li>Save, then copy both the Client ID (ends in <code>.apps.googleusercontent.com</code>) and the Client Secret (starts with <code>GOCSPX-</code>) Google generated alongside it - both get pasted into the extension's Options page. Save both these keys in a password manager or someplace you can reference them easily for future installs and setting up on other computers/browsers.</li>
     </ol>
     <p class="shots">
-      <img src="https://github.com/user-attachments/assets/f1752d22-0aff-44c2-98dc-c0c1c44241f0" alt="Copy the Client ID">
+      <img src="https://github.com/user-attachments/assets/3163db62-3c6a-4bcb-8be3-abeaf64c3c77" alt="OAuth client created - Client ID and Client Secret shown">
     </p>
 
     <h2>Part 4: Install the extension</h2>
@@ -116,18 +114,24 @@
       <li>Repeat on a second browser if you're using one - same Client ID and Secret, since both stores' redirect URIs are already on that OAuth client from Part 3.</li>
     </ol>
     <p class="shots">
-      <img src="https://github.com/user-attachments/assets/e461a559-f6cb-40e5-9449-b4ec6fe0e163" alt="Right-click the toolbar icon to find Options">
-      <img src="https://github.com/user-attachments/assets/bf126b6f-27b0-4c7b-9f38-3d364df39d6e" alt="Options menu entry">
-      <img src="https://github.com/user-attachments/assets/29503f09-8a44-421f-ae9c-5afc7e9abf8b" alt="Options page with Client ID field">
+      <img src="https://github.com/user-attachments/assets/ed813cad-a8a0-4017-bbe2-17f2a8c97d07" alt="Right-click the toolbar icon to find Change settings">
+      <img src="https://github.com/user-attachments/assets/7a7e3bc4-83bd-4f21-b401-d76278dfa9b1" alt="Options page with Client ID and Client Secret fields">
     </p>
 
     <h2>Part 6: First run</h2>
+    <p><strong>If you want one computer to be the "real" copy (Master / Destination):</strong></p>
     <p>Do this on your <strong>master</strong> computer first (the one with the bookmarks you already have):</p>
     <ol>
       <li>Click the extension icon in the toolbar.</li>
       <li>Check <strong>Master Sync Source</strong>.</li>
       <li>Click <strong>Connect Google Account</strong> and approve access.</li>
-      <li>It creates an <code>EasyBookmarkSync</code> folder in Drive and does an initial upload.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/34d5f22c-5516-486d-8ce5-eb7f767c0299" alt="Google verify app screen">
+      <img src="https://github.com/user-attachments/assets/c4bb7915-7221-4ad0-81a6-1d5e26bdb784" alt="Google verify app - continue">
+    </p>
+    <ol start="4">
+      <li>It creates an <code>EasyBookmarkSync</code> folder in Drive, takes an automatic "Initial Backup" as a safety net, and does an initial upload.</li>
     </ol>
     <p>Then on any other computer you want to pull bookmarks down to:</p>
     <ol>
@@ -137,12 +141,27 @@
       <li>It pulls down whatever the master last uploaded, replacing local bookmarks.</li>
     </ol>
 
+    <p><strong>If you want every computer to stay in sync both ways instead (Merge):</strong></p>
+    <ol>
+      <li>Click the extension icon on each computer you want in the group.</li>
+      <li>Check <strong>Merge (Two-Way)</strong>.</li>
+    </ol>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/d91516cc-6d83-4542-ad4f-efe81d342b9c" alt="Merge (Two-Way) checkbox on the setup screen">
+    </p>
+    <ol start="3">
+      <li>Click <strong>Connect Google Account</strong>, sign in with the <em>same</em> Google account on each one.</li>
+      <li>The first computer to connect seeds the shared group with its current bookmarks. Every computer after that takes a "Pre-Merge Backup" first, then joins by matching what it already has against the group - exact matches merge together quietly, and anything that's the same bookmark but filed or titled differently on each side shows up in the popup's Conflicts tab for you to resolve once.</li>
+    </ol>
+    <p>From then on, any change on any Merge computer - adding, editing, moving, or deleting a bookmark or folder - shows up on the others on their next sync.</p>
+
     <h2>How syncing behaves</h2>
     <ul>
       <li><strong>Manual:</strong> nothing happens automatically - only the "Sync now" button in the popup triggers a sync. Good for keeping full control over exactly when a sync happens.</li>
       <li><strong>Master, Realtime:</strong> a real bookmark change (add/remove/edit/move) triggers a sync within a few seconds, plus a once-a-minute backstop check in case a change happened while the browser was closed.</li>
       <li><strong>Destination, Realtime:</strong> checks the cloud roughly once a minute. A true instant push isn't possible without a server sitting in the middle watching for changes, so this is the closest practical equivalent.</li>
-      <li>Every sync fully replaces the target - no merging. Master overwrites the cloud copy; destination overwrites local bookmarks.</li>
+      <li><strong>Master/Destination:</strong> every sync fully replaces the target - no merging. Master overwrites the cloud copy; destination overwrites local bookmarks.</li>
+      <li><strong>Merge:</strong> every sync compares what changed locally against what's changed in the shared file since this device's last sync, then applies whichever side is genuinely new on each individual bookmark or folder. Deletions are tracked (not just a disappearance), so a computer that hasn't synced in a while won't bring something back that was deleted elsewhere. If the same item changed on two computers before either synced, it's held back and shown in the Conflicts tab instead of guessing which side should win.</li>
       <li>Checks that find nothing new don't touch Drive or your bookmarks at all - a real sync only happens when something actually changed.</li>
       <li>The extension only asks for permission to see files <em>it</em> creates in Drive (the <code>drive.file</code> scope), not your whole Drive.</li>
     </ul>
@@ -153,12 +172,34 @@
       Backup</strong> in the popup footer opens its own page where you can:
     </p>
     <ul>
-      <li><strong>Generate a separate Backup</strong> - saves a timestamped snapshot of every bookmark in this browser right now, into its own <code>Backups</code> folder inside <code>EasyBookmarkSync</code>. The automatic sync never reads or writes this folder.</li>
-      <li><strong>Browse and delete</strong> - every backup is listed with its date and bookmark count, each with its own delete button.</li>
-      <li><strong>Restore</strong> - pick a backup from the dropdown and restore it, replacing every current local bookmark with that snapshot. This asks for confirmation first since it can't be undone, and is only available on the <strong>Master Sync Source</strong> browser - a destination browser is just a mirror of the master, so restoring one wouldn't have anywhere to go once the next sync ran.</li>
+      <li><strong>Generate a separate Backup</strong> - saves a timestamped snapshot of every bookmark in this browser right now, into its own <code>Backups</code> folder inside <code>EasyBookmarkSync</code>. The automatic sync never reads or writes this folder. Named with this device's label (set on the Options page) so it's easy to tell which computer a backup came from.</li>
+      <li><strong>Browse and delete</strong> - every backup is listed with its name, date, and bookmark count, each with its own delete button.</li>
+      <li><strong>Restore</strong> - pick a backup from the dropdown and restore it, replacing every current local bookmark with that snapshot. This asks for confirmation first since it can't be undone. Available on <strong>Master Sync Source</strong> and <strong>Merge (Two-Way)</strong> - not Destination Sync, since that's just a mirror and would get overwritten by the next pull anyway. Restoring on a Merge device resets that device's sync tracking so it safely re-joins the group on its next sync, same as a brand new device.</li>
+      <li><strong>Keep at most</strong> sets a retention limit (default 15, editable, or "Unlimited") - the oldest backups auto-prune once you're over it.</li>
     </ul>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/99ff2f6d-4452-4245-961c-2c3d89b2dc2f" alt="Manual Backups page">
+    </p>
+    <p>
+      Two backups also happen automatically, no action needed: an
+      <strong>Initial Backup</strong> the very first time you ever connect
+      a Google account, and a <strong>Pre-Merge Backup</strong> whenever a
+      device joins an existing Merge group, right before it reconciles
+      against what's already there.
+    </p>
 
-    <h2>Troubleshooting</h2>
+    <h2>Merge (Two-Way) extras</h2>
+    <p>Two things only show up in the popup when a device is set to Merge:</p>
+    <ul>
+      <li><strong>Conflicts tab</strong> - appears (with a count badge) whenever something changed differently on two computers before they synced. Each entry shows both versions with options to keep one, keep the other, or keep both. The toolbar icon shows an amber dot whenever anything's pending here, ahead of the usual green "synced" dot.</li>
+      <li><strong>Troubleshooting tab</strong> - has a "Reset merge tracking" button for if this device's sync tracking ever seems off. It doesn't touch or delete any bookmarks - it clears this device's local bookkeeping and has it safely re-join the group on the next sync, the same way a brand new device would.</li>
+    </ul>
+    <p class="shots">
+      <img src="https://github.com/user-attachments/assets/bd424c15-5c08-4a63-9ed1-5bbe9483be3e" alt="Troubleshooting tab with the Reset merge tracking button">
+    </p>
+
+    <h2>Troubleshooting setup/sign-in issues</h2>
+    <p>(For Merge sync tracking issues specifically, use the Troubleshooting tab inside the extension's popup instead - see above.)</p>
     <ul>
       <li><strong>Error 400: redirect_uri_mismatch</strong> - the redirect URI on the Options page doesn't exactly match one of the Authorized redirect URIs on your OAuth client. Double check for a missing trailing slash or http vs https.</li>
       <li><strong>"No Google Client ID set yet"</strong> - paste one into the extension's Options page.</li>

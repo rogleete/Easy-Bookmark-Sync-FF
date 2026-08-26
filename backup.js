@@ -6,8 +6,14 @@ const restoreSelect = document.getElementById('restoreSelect');
 const restoreButton = document.getElementById('restoreButton');
 const restoreMessage = document.getElementById('restoreMessage');
 const destinationNotice = document.getElementById('destinationNotice');
+const mergeRestoreNotice = document.getElementById('mergeRestoreNotice');
+const limitInput = document.getElementById('limitInput');
+const unlimitedCheckbox = document.getElementById('unlimitedCheckbox');
+const saveLimitButton = document.getElementById('saveLimitButton');
+const limitMessage = document.getElementById('limitMessage');
 
-let isMaster = false;
+let canRestore = false;
+let currentRole = null;
 
 function send(message) {
   return new Promise((resolve) => chrome.runtime.sendMessage(message, resolve));
@@ -15,10 +21,12 @@ function send(message) {
 
 async function checkRole() {
   const state = await send({ type: 'getState' });
-  isMaster = state.role === 'master';
-  destinationNotice.classList.toggle('hidden', isMaster);
-  restoreSelect.classList.toggle('hidden', !isMaster);
-  if (!isMaster) {
+  currentRole = state.role;
+  canRestore = state.role === 'master' || state.role === 'merge';
+  destinationNotice.classList.toggle('hidden', canRestore);
+  mergeRestoreNotice.classList.toggle('hidden', state.role !== 'merge');
+  restoreSelect.classList.toggle('hidden', !canRestore);
+  if (!canRestore) {
     restoreButton.classList.add('hidden');
   }
 }
@@ -49,6 +57,10 @@ async function loadBackups() {
   renderBackups(res.backups);
 }
 
+function displayName(backup) {
+  return backup.name ? backup.name.replace(/\.json$/i, '') : formatDate(backup.createdTime);
+}
+
 function renderBackups(backups) {
   backupList.innerHTML = '';
   restoreSelect.innerHTML = '';
@@ -69,12 +81,12 @@ function renderBackups(backups) {
 
     const info = document.createElement('div');
     info.className = 'backupInfo';
-    const dateEl = document.createElement('strong');
-    dateEl.textContent = formatDate(backup.createdTime);
-    const countEl = document.createElement('span');
-    countEl.textContent = countLabel;
-    info.appendChild(dateEl);
-    info.appendChild(countEl);
+    const nameEl = document.createElement('strong');
+    nameEl.textContent = displayName(backup);
+    const detailEl = document.createElement('span');
+    detailEl.textContent = `${formatDate(backup.createdTime)} - ${countLabel}`;
+    info.appendChild(nameEl);
+    info.appendChild(detailEl);
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'linkButton dangerText';
@@ -87,7 +99,7 @@ function renderBackups(backups) {
 
     const option = document.createElement('option');
     option.value = backup.id;
-    option.textContent = `${formatDate(backup.createdTime)} - ${countLabel}`;
+    option.textContent = displayName(backup);
     restoreSelect.appendChild(option);
   }
 }
@@ -126,7 +138,10 @@ restoreButton.addEventListener('click', async () => {
     return;
   }
   const label = restoreSelect.options[restoreSelect.selectedIndex].textContent;
-  if (!confirm(`Restore "${label}"? This replaces every bookmark currently in this browser and can't be undone.`)) {
+  const mergeWarning = currentRole === 'merge'
+    ? ' This device is set to Merge (Two-Way), so afterward it will re-join the shared group from scratch on its next sync, the same way a new device joining for the first time would.'
+    : '';
+  if (!confirm(`Restore "${label}"? This replaces every bookmark currently in this browser and can't be undone.${mergeWarning}`)) {
     return;
   }
 
@@ -144,5 +159,28 @@ restoreButton.addEventListener('click', async () => {
   showMessage(restoreMessage, `Restored ${res.result.synced}/${res.result.total} bookmarks`, false);
 });
 
+async function loadLimit() {
+  const state = await send({ type: 'getState' });
+  limitInput.value = state.backupLimit || DEFAULT_BACKUP_LIMIT;
+  unlimitedCheckbox.checked = Boolean(state.backupLimitUnlimited);
+  limitInput.disabled = unlimitedCheckbox.checked;
+}
+
+unlimitedCheckbox.addEventListener('change', () => {
+  limitInput.disabled = unlimitedCheckbox.checked;
+});
+
+saveLimitButton.addEventListener('click', async () => {
+  const limit = Math.max(1, parseInt(limitInput.value, 10) || DEFAULT_BACKUP_LIMIT);
+  limitInput.value = limit;
+  const res = await send({ type: 'setBackupLimit', limit, unlimited: unlimitedCheckbox.checked });
+  if (res.ok) {
+    showMessage(limitMessage, 'Saved', false);
+  } else {
+    showMessage(limitMessage, res.error || 'Could not save', true);
+  }
+});
+
 loadBackups();
 checkRole();
+loadLimit();

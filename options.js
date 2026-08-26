@@ -5,6 +5,30 @@ const saveMessage = document.getElementById('saveMessage');
 const redirectUriText = document.getElementById('redirectUriText');
 const copyRedirectButton = document.getElementById('copyRedirectButton');
 const fullInstructionsLink = document.getElementById('fullInstructionsLink');
+const deviceLabelInput = document.getElementById('deviceLabelInput');
+const saveDeviceLabelButton = document.getElementById('saveDeviceLabelButton');
+const deviceLabelMessage = document.getElementById('deviceLabelMessage');
+
+function send(message) {
+  return new Promise((resolve) => chrome.runtime.sendMessage(message, resolve));
+}
+
+async function loadDeviceLabel() {
+  const state = await send({ type: 'getState' });
+  deviceLabelInput.value = state.deviceLabel || '';
+  deviceLabelInput.placeholder = state.deviceLabel || "e.g. Sam's Laptop";
+}
+
+saveDeviceLabelButton.addEventListener('click', async () => {
+  const label = deviceLabelInput.value.trim();
+  await send({ type: 'setDeviceLabel', label });
+  deviceLabelMessage.textContent = label ? 'Saved.' : 'Cleared - a default will be used instead.';
+  deviceLabelMessage.classList.remove('hidden');
+  setTimeout(() => deviceLabelMessage.classList.add('hidden'), 2000);
+  await loadDeviceLabel();
+});
+
+loadDeviceLabel();
 
 redirectUriText.textContent = chrome.identity.getRedirectURL();
 fullInstructionsLink.href = chrome.runtime.getURL('install.html');

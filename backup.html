@@ -19,6 +19,20 @@
       to if something ever goes sideways with the live sync.
     </p>
 
+    <div class="limitRow">
+      <label class="fieldLabel" for="limitInput">Keep at most</label>
+      <div class="limitControls">
+        <input type="number" id="limitInput" min="1" max="500" value="15">
+        <label class="unlimitedLabel">
+          <input type="checkbox" id="unlimitedCheckbox">
+          Unlimited
+        </label>
+        <button id="saveLimitButton" class="linkButton linkButtonBlue">Save</button>
+      </div>
+      <p id="limitMessage" class="message hidden"></p>
+      <p class="limitHint">Oldest backups are deleted automatically once this limit is passed. The "Initial Backup" created automatically on first sign-in counts toward this limit too.</p>
+    </div>
+
     <button id="createButton" class="primary">Generate a separate Backup</button>
     <p id="createMessage" class="message hidden"></p>
 
@@ -28,12 +42,14 @@
 
     <h2>Restore a backup</h2>
     <p class="warn">Restoring replaces every bookmark currently in this browser with what's in the selected backup. This can't be undone.</p>
-    <p id="destinationNotice" class="destinationNotice hidden">Restoring a backup is only available on the Master Sync Source browser. This computer is set to Destination Sync, so it only ever pulls bookmarks down from the live sync file.</p>
+    <p id="destinationNotice" class="destinationNotice hidden">Restoring a backup is only available on Master Sync Source or Merge (Two-Way). This computer is set to Destination Sync, so it only ever pulls bookmarks down from whatever the group already has.</p>
+    <p id="mergeRestoreNotice" class="destinationNotice hidden">This device is set to Merge (Two-Way). Restoring will make it re-join the shared group from scratch on its next sync - same as a brand new device joining for the first time, including a fresh Pre-Merge Backup and reconciliation pass.</p>
     <select id="restoreSelect" class="hidden"></select>
     <button id="restoreButton" class="primary danger">Restore selected backup</button>
     <p id="restoreMessage" class="message hidden"></p>
   </div>
 
+  <script src="config.js"></script>
   <script src="backup.js"></script>
 </body>
 </html>

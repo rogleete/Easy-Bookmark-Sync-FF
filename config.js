@@ -9,6 +9,25 @@ const GOOGLE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'EasyBookmarkSync';
 const DRIVE_FILE_NAME = 'bookmarks.json';
 
+// Manual + automatic backups share one retention pool in the "Backups"
+// Drive folder. Editable from the Manual Backups page; unlimited skips
+// pruning entirely.
+const DEFAULT_BACKUP_LIMIT = 15;
+
+// Short scrollable activity history shown in the popup's Activity tab.
+const SYNC_LOG_LIMIT = 15;
+
+// Merge (Two-Way) devices sync to a completely separate file from the
+// Master/Destination live sync file, so the two modes never collide.
+const DRIVE_MERGE_FILE_NAME = 'bookmarks-merge.json';
+
+// how long a deletion tombstone sticks around before being pruned. Needs
+// to comfortably outlast how long a device might realistically go
+// without syncing, or a very stale device could resurrect something that
+// was deleted, then have it deleted again on its next sync - annoying
+// but not data-destroying, so a generous window is fine.
+const TOMBSTONE_RETENTION_DAYS = 90;
+
 // Chrome enforces a 1 minute floor on alarms once an extension is packed,
 // so "realtime" really means "check almost every minute" rather than
 // instantaneous. Bookmark change events themselves fire immediately for
