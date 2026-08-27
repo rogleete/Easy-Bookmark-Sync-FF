@@ -1010,13 +1010,33 @@ function parentRefFor(parentTag, mergeIndex) {
 // creating any missing ancestor folders along the way) the matching
 // local folder and returns its local id. folderLocalIdByStableId is a
 // cache shared across one sync pass so repeated lookups don't rescan.
-async function resolveLocalFolderForRef(ref, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId) {
+async function resolveLocalFolderForRef(ref, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId, depth = 0) {
+  if (depth > 40) {
+    // a cyclic parentRef chain would recurse forever otherwise - this
+    // should never legitimately happen, but a corrupted shared file is
+    // exactly the kind of thing that could produce one, and a stack
+    // overflow taking down the whole sync is a worse failure than
+    // landing something in the wrong folder
+    console.warn('[EasyBookmarkSync] folder reference chain too deep, likely cyclic - falling back to Other Bookmarks', ref);
+    return resolveLocalFolderForRef('#other', mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId, 0);
+  }
+
   if (!ref || ref.startsWith('#')) {
     const role = ref ? ref.slice(1) : 'other';
     const roots = await chrome.bookmarks.getTree();
     const match = roots[0].children.find((n) => detectFolderRole(n) === role);
     if (match) {
       return match.id;
+    }
+    // this device doesn't have a folder for that role at all - most often
+    // Firefox's Bookmarks Menu (#menu) syncing to Chrome/Edge, which has
+    // no menu-bar equivalent. Route it somewhere predictable (Other
+    // Bookmarks) rather than whichever top-level folder happens to be
+    // first, so the same content always lands in the same place instead
+    // of depending on folder order.
+    const other = roots[0].children.find((n) => detectFolderRole(n) === 'other');
+    if (other) {
+      return other.id;
     }
     const fallback = roots[0].children.find((n) => !n.url) || roots[0].children[0];
     return fallback.id;
@@ -1029,10 +1049,10 @@ async function resolveLocalFolderForRef(ref, mergeIndex, remoteFoldersByStableId
   const def = remoteFoldersByStableId.get(ref);
   if (!def) {
     // unknown reference (shouldn't normally happen) - fall back rather than failing outright
-    return resolveLocalFolderForRef('#other', mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId);
+    return resolveLocalFolderForRef('#other', mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId, depth + 1);
   }
 
-  const parentLocalId = await resolveLocalFolderForRef(def.parentRef, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId);
+  const parentLocalId = await resolveLocalFolderForRef(def.parentRef, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId, depth + 1);
   const created = await chrome.bookmarks.create({ parentId: parentLocalId, title: def.title });
   mergeIndex[created.id] = {
     stableId: ref,

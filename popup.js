@@ -97,6 +97,19 @@ function conflictLocationText(side) {
   return `${side.title || '(no title)'} - in ${folder}`;
 }
 
+// builds "<strong>label</strong><br>detail" without ever touching
+// innerHTML - label/detail come from synced data (device labels, bookmark
+// titles) which could contain arbitrary text from another device, so
+// this has to go through textContent/DOM nodes rather than a template
+// string, or a malicious title could inject markup into the popup.
+function appendVersionLine(container, label, detail) {
+  const strong = document.createElement('strong');
+  strong.textContent = label;
+  container.appendChild(strong);
+  container.appendChild(document.createElement('br'));
+  container.appendChild(document.createTextNode(detail));
+}
+
 function renderConflicts(conflicts) {
   conflictsList.innerHTML = '';
   const list = conflicts || [];
@@ -128,9 +141,11 @@ function renderConflicts(conflicts) {
 
     if (c.type === 'edit-delete') {
       const deletedHere = Boolean(c.local && c.local.deletedAt);
-      mine.innerHTML = deletedHere
-        ? `<strong>This computer</strong><br>Deleted`
-        : `<strong>${c.remote.deviceLabel || 'Other device'}</strong><br>${conflictLocationText(c.remote)}`;
+      if (deletedHere) {
+        appendVersionLine(mine, 'This computer', 'Deleted');
+      } else {
+        appendVersionLine(mine, c.remote.deviceLabel || 'Other device', conflictLocationText(c.remote));
+      }
       versions.appendChild(mine);
 
       const keepDeleteBtn = document.createElement('button');
@@ -146,10 +161,10 @@ function renderConflicts(conflicts) {
       buttons.appendChild(keepDeleteBtn);
       buttons.appendChild(restoreBtn);
     } else {
-      mine.innerHTML = `<strong>This computer</strong><br>${conflictLocationText(c.local)}`;
+      appendVersionLine(mine, 'This computer', conflictLocationText(c.local));
       const theirs = document.createElement('div');
       theirs.className = 'conflictVersion';
-      theirs.innerHTML = `<strong>${c.remote.deviceLabel || 'Other device'}</strong><br>${conflictLocationText(c.remote)}`;
+      appendVersionLine(theirs, c.remote.deviceLabel || 'Other device', conflictLocationText(c.remote));
       versions.appendChild(mine);
       versions.appendChild(theirs);
 
