@@ -1271,7 +1271,7 @@ async function runMergeSync(token, folderId, state) {
   });
   const mergeIndex = { ...(state.mergeIndex || {}) };
   let tombstones = { ...(state.tombstones || {}) };
-  const conflicts = [...(state.conflicts || [])];
+  let conflicts = [...(state.conflicts || [])];
   const now = Date.now();
   let pulled = 0;
   let pushed = 0;
@@ -1392,7 +1392,10 @@ async function runMergeSync(token, folderId, state) {
         if (candidates.length) {
           const remoteItem = candidates[0];
           matchedRemoteBookmarkIds.add(remoteItem.stableId);
-          const sameEverything = remoteItem.title === item.title && remoteItem.parentRef === parentRef;
+          const sameEverything =
+            remoteItem.title === item.title &&
+            (remoteItem.parentRef === parentRef ||
+              refDisplayPath(remoteItem.parentRef, folderInfoByStableId) === refDisplayPath(parentRef, folderInfoByStableId));
           if (sameEverything) {
             mergeIndex[item.localId] = {
               stableId: remoteItem.stableId,
@@ -1529,6 +1532,23 @@ async function runMergeSync(token, folderId, state) {
     }
     const folderInfoByStableId = buildFolderInfoByStableId(mergeIndex, remoteFoldersByStableId);
 
+    // maps a folder's rendered "Toolbar / Work" path to whichever local
+    // folder entry currently claims it - used below to notice when a
+    // remote folder reference is really the SAME folder under a
+    // different stable id (the two diverged at some point, e.g. through
+    // separate resets on different devices) rather than a genuinely new
+    // folder, and heal it instead of creating a duplicate.
+    const localFolderByPath = new Map();
+    for (const [localId, entry] of Object.entries(mergeIndex)) {
+      if (entry.kind === 'folder') {
+        localFolderByPath.set(refDisplayPath(entry.stableId, folderInfoByStableId), { localId, entry });
+      }
+    }
+    // stableIds this pass determines were never really in conflict -
+    // clears out any stale conflict entries already sitting in state from
+    // before this fix existed, not just prevents new ones
+    const resolvedIdenticalStableIds = new Set();
+
     // 3) reconcile against remote - folders first, so any folder a
     // bookmark needs to move into already exists by the time bookmarks run
     applyingRemoteChange = true;
@@ -1536,8 +1556,33 @@ async function runMergeSync(token, folderId, state) {
       for (const remoteList of [remoteData.folders, remoteData.bookmarks]) {
         const isFolder = remoteList === remoteData.folders;
         for (const r of remoteList) {
-          const found = byStableId.get(r.stableId);
+          let found = byStableId.get(r.stableId);
           const myTombstone = tombstones[r.stableId];
+
+          if (isFolder && !found && !myTombstone) {
+            const remotePath = refDisplayPath(r.stableId, folderInfoByStableId);
+            const existingByPath = localFolderByPath.get(remotePath);
+            if (existingByPath) {
+              // same real folder, different id - converge both devices onto
+              // whichever id sorts first, deterministically, so every
+              // device reaches the same answer independently without
+              // needing to coordinate. Bookmarks inside pick up the
+              // corrected reference automatically on the next local walk,
+              // since they look their parent folder's stableId up fresh
+              // each sync rather than caching it.
+              const winner = existingByPath.entry.stableId < r.stableId ? existingByPath.entry.stableId : r.stableId;
+              if (existingByPath.entry.stableId !== winner) {
+                existingByPath.entry.stableId = winner;
+                existingByPath.entry.lastSyncedModified = Math.max(existingByPath.entry.lastSyncedModified, r.lastModified);
+              }
+              byStableId.set(winner, existingByPath);
+              byStableId.set(r.stableId, existingByPath);
+              folderLocalIdByStableId.set(winner, existingByPath.localId);
+              folderLocalIdByStableId.set(r.stableId, existingByPath.localId);
+              localFolderByPath.set(remotePath, existingByPath);
+              found = existingByPath;
+            }
+          }
 
           if (myTombstone) {
             if (r.lastModified > myTombstone.deletedAt && !hasPendingConflict(conflicts, r.stableId)) {
@@ -1585,8 +1630,10 @@ async function runMergeSync(token, folderId, state) {
           const { localId, entry } = found;
           const remoteChangedSinceSync = r.lastModified > entry.lastSyncedModified;
           const localChangedSinceSync = entry.localModified > entry.lastSyncedModified;
-          const contentIdentical =
-            entry.title === r.title && entry.parentRef === r.parentRef && (isFolder || entry.url === r.url);
+          const parentMatches =
+            entry.parentRef === r.parentRef ||
+            refDisplayPath(entry.parentRef, folderInfoByStableId) === refDisplayPath(r.parentRef, folderInfoByStableId);
+          const contentIdentical = entry.title === r.title && parentMatches && (isFolder || entry.url === r.url);
 
           if (contentIdentical) {
             // both sides show a change since we last agreed, but the actual
@@ -1594,6 +1641,8 @@ async function runMergeSync(token, folderId, state) {
             // bookkeeping back in line rather than bothering anyone with a
             // conflict over nothing
             entry.lastSyncedModified = Math.max(entry.lastSyncedModified, r.lastModified, entry.localModified);
+            resolvedIdenticalStableIds.add(entry.stableId);
+            resolvedIdenticalStableIds.add(r.stableId);
           } else if (remoteChangedSinceSync && localChangedSinceSync) {
             if (!hasPendingConflict(conflicts, r.stableId)) {
               conflicts.push({
@@ -1644,6 +1693,12 @@ async function runMergeSync(token, folderId, state) {
       }
     } finally {
       applyingRemoteChange = false;
+    }
+
+    if (resolvedIdenticalStableIds.size) {
+      conflicts = conflicts.filter(
+        (c) => !resolvedIdenticalStableIds.has(c.local?.stableId) && !resolvedIdenticalStableIds.has(c.remote?.stableId)
+      );
     }
 
     // remote tombstones for things I still have locally and haven't touched
@@ -1716,6 +1771,94 @@ async function runMergeSync(token, folderId, state) {
   return { pulled, pushed, total, conflictCount: conflicts.length };
 }
 
+// Applies one resolution to one conflict, mutating mergeIndex/tombstones
+// in place. Shared by both the single-conflict resolver and the bulk
+// resolver below, so "resolve one" and "resolve all of these" always
+// behave identically. Returns an error string if this specific item
+// couldn't be resolved safely (never touches bookmark-mutation calls
+// without the protected-id guard), or null on success.
+async function applyConflictResolution(conflict, resolution, mergeIndex, tombstones, deviceLabel) {
+  const now = Date.now();
+  const isFolder = conflict.kind === 'folder';
+
+  if (conflict.type === 'edit-edit') {
+    const localId = conflict.local.localId;
+    if (resolution === 'remote') {
+      if (await isProtectedLocalId(localId)) {
+        warnProtectedId('resolveConflict edit-edit remote', localId, conflict);
+        return "That item can't be safely resolved automatically - please check it manually in your bookmarks.";
+      }
+      await chrome.bookmarks.update(localId, isFolder ? { title: conflict.remote.title } : { title: conflict.remote.title, url: conflict.url });
+      mergeIndex[localId] = {
+        ...(mergeIndex[localId] || {}),
+        stableId: conflict.remote.stableId,
+        kind: conflict.kind,
+        url: isFolder ? undefined : conflict.url,
+        title: conflict.remote.title,
+        localModified: now,
+        lastSyncedModified: now
+      };
+    } else if (resolution === 'both') {
+      const localNode = await chrome.bookmarks.get(localId).catch(() => null);
+      const parentLocalId = localNode && localNode[0] ? localNode[0].parentId : null;
+      const created = isFolder
+        ? await chrome.bookmarks.create({ parentId: parentLocalId, title: conflict.remote.title })
+        : await chrome.bookmarks.create({ parentId: parentLocalId, title: conflict.remote.title, url: conflict.url });
+      mergeIndex[created.id] = {
+        stableId: conflict.remote.stableId,
+        kind: conflict.kind,
+        url: isFolder ? undefined : conflict.url,
+        title: conflict.remote.title,
+        parentRef: mergeIndex[localId] ? mergeIndex[localId].parentRef : null,
+        localModified: now,
+        lastSyncedModified: now
+      };
+      if (mergeIndex[localId]) {
+        mergeIndex[localId].lastSyncedModified = now;
+      }
+    } else {
+      if (mergeIndex[localId]) {
+        mergeIndex[localId].lastSyncedModified = now;
+      }
+    }
+  } else if (conflict.type === 'edit-delete') {
+    if (resolution === 'delete') {
+      if (conflict.local && conflict.local.localId) {
+        if (await isProtectedLocalId(conflict.local.localId)) {
+          warnProtectedId('resolveConflict edit-delete', conflict.local.localId, conflict);
+          return "That item can't be safely resolved automatically - please check it manually in your bookmarks.";
+        }
+        await chrome.bookmarks.remove(conflict.local.localId);
+        delete mergeIndex[conflict.local.localId];
+      }
+      tombstones[conflict.remote?.stableId || conflict.local?.stableId] = { deletedAt: now, deviceLabel };
+    } else {
+      const stableId = conflict.remote?.stableId || conflict.local?.stableId;
+      delete tombstones[stableId];
+      if (conflict.local && conflict.local.localId && mergeIndex[conflict.local.localId]) {
+        mergeIndex[conflict.local.localId].lastSyncedModified = now;
+      } else if (conflict.remote) {
+        const roots = await chrome.bookmarks.getTree();
+        const parentNode = roots[0].children.find((n) => !n.url) || roots[0].children[0];
+        const parentRole = detectFolderRole(parentNode);
+        const created = isFolder
+          ? await chrome.bookmarks.create({ parentId: parentNode.id, title: conflict.remote.title })
+          : await chrome.bookmarks.create({ parentId: parentNode.id, title: conflict.remote.title, url: conflict.url });
+        mergeIndex[created.id] = {
+          stableId,
+          kind: conflict.kind,
+          url: isFolder ? undefined : conflict.url,
+          title: conflict.remote.title,
+          parentRef: parentRole ? `#${parentRole}` : null,
+          localModified: now,
+          lastSyncedModified: now
+        };
+      }
+    }
+  }
+  return null;
+}
+
 // called from the popup when someone resolves an item in the Conflicts tab
 async function resolveConflict(conflictId, resolution) {
   const state = await getState();
@@ -1726,88 +1869,17 @@ async function resolveConflict(conflictId, resolution) {
 
   const mergeIndex = { ...state.mergeIndex };
   const tombstones = { ...state.tombstones };
-  const now = Date.now();
-  const isFolder = conflict.kind === 'folder';
+  const deviceLabel = await getOrCreateDeviceLabel();
 
+  let error = null;
   applyingRemoteChange = true;
   try {
-    if (conflict.type === 'edit-edit') {
-      const localId = conflict.local.localId;
-      if (resolution === 'remote') {
-        if (await isProtectedLocalId(localId)) {
-          warnProtectedId('resolveConflict edit-edit remote', localId, conflict);
-          return { ok: false, error: "That item can't be safely resolved automatically - please check it manually in your bookmarks." };
-        }
-        await chrome.bookmarks.update(localId, isFolder ? { title: conflict.remote.title } : { title: conflict.remote.title, url: conflict.url });
-        mergeIndex[localId] = {
-          ...(mergeIndex[localId] || {}),
-          stableId: conflict.remote.stableId,
-          kind: conflict.kind,
-          url: isFolder ? undefined : conflict.url,
-          title: conflict.remote.title,
-          localModified: now,
-          lastSyncedModified: now
-        };
-      } else if (resolution === 'both') {
-        const localNode = await chrome.bookmarks.get(localId).catch(() => null);
-        const parentLocalId = localNode && localNode[0] ? localNode[0].parentId : null;
-        const created = isFolder
-          ? await chrome.bookmarks.create({ parentId: parentLocalId, title: conflict.remote.title })
-          : await chrome.bookmarks.create({ parentId: parentLocalId, title: conflict.remote.title, url: conflict.url });
-        mergeIndex[created.id] = {
-          stableId: conflict.remote.stableId,
-          kind: conflict.kind,
-          url: isFolder ? undefined : conflict.url,
-          title: conflict.remote.title,
-          parentRef: mergeIndex[localId] ? mergeIndex[localId].parentRef : null,
-          localModified: now,
-          lastSyncedModified: now
-        };
-        if (mergeIndex[localId]) {
-          mergeIndex[localId].lastSyncedModified = now;
-        }
-      } else {
-        if (mergeIndex[localId]) {
-          mergeIndex[localId].lastSyncedModified = now;
-        }
-      }
-    } else if (conflict.type === 'edit-delete') {
-      if (resolution === 'delete') {
-        if (conflict.local && conflict.local.localId) {
-          if (await isProtectedLocalId(conflict.local.localId)) {
-            warnProtectedId('resolveConflict edit-delete', conflict.local.localId, conflict);
-            return { ok: false, error: "That item can't be safely resolved automatically - please check it manually in your bookmarks." };
-          }
-          await chrome.bookmarks.remove(conflict.local.localId);
-          delete mergeIndex[conflict.local.localId];
-        }
-        tombstones[conflict.remote?.stableId || conflict.local?.stableId] = { deletedAt: now, deviceLabel: await getOrCreateDeviceLabel() };
-      } else {
-        const stableId = conflict.remote?.stableId || conflict.local?.stableId;
-        delete tombstones[stableId];
-        if (conflict.local && conflict.local.localId && mergeIndex[conflict.local.localId]) {
-          mergeIndex[conflict.local.localId].lastSyncedModified = now;
-        } else if (conflict.remote) {
-          const roots = await chrome.bookmarks.getTree();
-          const parentNode = roots[0].children.find((n) => !n.url) || roots[0].children[0];
-          const parentRole = detectFolderRole(parentNode);
-          const created = isFolder
-            ? await chrome.bookmarks.create({ parentId: parentNode.id, title: conflict.remote.title })
-            : await chrome.bookmarks.create({ parentId: parentNode.id, title: conflict.remote.title, url: conflict.url });
-          mergeIndex[created.id] = {
-            stableId,
-            kind: conflict.kind,
-            url: isFolder ? undefined : conflict.url,
-            title: conflict.remote.title,
-            parentRef: parentRole ? `#${parentRole}` : null,
-            localModified: now,
-            lastSyncedModified: now
-          };
-        }
-      }
-    }
+    error = await applyConflictResolution(conflict, resolution, mergeIndex, tombstones, deviceLabel);
   } finally {
     applyingRemoteChange = false;
+  }
+  if (error) {
+    return { ok: false, error };
   }
 
   // clears the resolved conflict AND any older duplicates for the same
@@ -1822,6 +1894,58 @@ async function resolveConflict(conflictId, resolution) {
   await setState({ mergeIndex, tombstones, conflicts });
   await refreshBadge();
   return { ok: true };
+}
+
+// resolves every currently-pending conflict of a given type the same way
+// in one pass - the popup's "for all" buttons in the Conflicts tab. Scope
+// is always a single conflict type (edit-edit or edit-delete), since
+// they don't share meaningful resolution options (there's no "both" for
+// a deletion, for instance) - the popup only ever calls this once per
+// button, one type at a time.
+async function resolveAllConflicts(conflictType, resolution) {
+  const state = await getState();
+  const targets = (state.conflicts || []).filter((c) => c.type === conflictType);
+  if (!targets.length) {
+    return { ok: true, count: 0 };
+  }
+
+  const mergeIndex = { ...state.mergeIndex };
+  const tombstones = { ...state.tombstones };
+  const deviceLabel = await getOrCreateDeviceLabel();
+  let resolvedCount = 0;
+  let lastError = null;
+
+  applyingRemoteChange = true;
+  try {
+    for (const conflict of targets) {
+      const error = await applyConflictResolution(conflict, resolution, mergeIndex, tombstones, deviceLabel);
+      if (error) {
+        lastError = error; // keep going - one unresolvable item shouldn't block the rest
+      } else {
+        resolvedCount++;
+      }
+    }
+  } finally {
+    applyingRemoteChange = false;
+  }
+
+  const resolvedStableIds = new Set();
+  for (const c of targets) {
+    resolvedStableIds.add(c.local?.stableId || c.remote?.stableId);
+  }
+  const conflicts = (state.conflicts || []).filter((c) => {
+    const cStableId = c.local?.stableId || c.remote?.stableId;
+    return !resolvedStableIds.has(cStableId);
+  });
+  await setState({ mergeIndex, tombstones, conflicts });
+  await refreshBadge();
+  await appendSyncLog({
+    source: 'merge',
+    ok: true,
+    message: `Bulk-resolved ${resolvedCount} conflict${resolvedCount === 1 ? '' : 's'} (${resolution})`
+  });
+
+  return { ok: true, count: resolvedCount, error: lastError };
 }
 
 // ---------- sync orchestration ----------
@@ -2215,6 +2339,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         try {
           const result = await resolveConflict(message.conflictId, message.resolution);
+          sendResponse(result);
+        } catch (err) {
+          sendResponse({ ok: false, error: err.message });
+        } finally {
+          await releaseSyncLock();
+        }
+        break;
+      }
+      case 'resolveAllConflicts': {
+        if (!(await acquireSyncLock())) {
+          sendResponse({ ok: false, error: 'A sync is currently in progress - try again in a moment' });
+          break;
+        }
+        try {
+          const result = await resolveAllConflicts(message.conflictType, message.resolution);
           sendResponse(result);
         } catch (err) {
           sendResponse({ ok: false, error: err.message });

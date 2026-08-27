@@ -101,6 +101,14 @@
 
     <div id="conflictsTab" class="tabPanel hidden">
       <p class="intro">Each of these changed differently on two computers before they synced. Pick which version to keep.</p>
+      <div id="conflictsBulkActions" class="conflictsBulkActions hidden">
+        <button id="keepBothAllButton" class="primary">Keep both for all (<span id="editEditCount">0</span>)</button>
+        <p class="bulkHint">Safest option if you often intentionally use the same link in different folders - nothing gets deleted either way.</p>
+        <div class="bulkSecondary">
+          <button id="keepMineAllButton" class="linkButton">Keep mine for all</button>
+          <button id="keepTheirsAllButton" class="linkButton">Keep theirs for all</button>
+        </div>
+      </div>
       <div id="conflictsList" class="conflictsList"></div>
       <p id="conflictsEmpty" class="emptyMessage hidden">No conflicts.</p>
     </div>

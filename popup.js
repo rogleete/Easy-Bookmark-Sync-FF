@@ -29,6 +29,11 @@ const activityList = document.getElementById('activityList');
 const activityEmpty = document.getElementById('activityEmpty');
 const conflictsList = document.getElementById('conflictsList');
 const conflictsEmpty = document.getElementById('conflictsEmpty');
+const conflictsBulkActions = document.getElementById('conflictsBulkActions');
+const editEditCountEl = document.getElementById('editEditCount');
+const keepBothAllButton = document.getElementById('keepBothAllButton');
+const keepMineAllButton = document.getElementById('keepMineAllButton');
+const keepTheirsAllButton = document.getElementById('keepTheirsAllButton');
 const resetTrackingButton = document.getElementById('resetTrackingButton');
 const resetTrackingMessage = document.getElementById('resetTrackingMessage');
 
@@ -116,6 +121,10 @@ function renderConflicts(conflicts) {
   conflictsTabButton.classList.toggle('hidden', list.length === 0);
   conflictsCount.textContent = list.length ? ` (${list.length})` : '';
 
+  const editEditCount = list.filter((c) => c.type === 'edit-edit').length;
+  conflictsBulkActions.classList.toggle('hidden', editEditCount === 0);
+  editEditCountEl.textContent = editEditCount;
+
   if (!list.length) {
     conflictsEmpty.classList.remove('hidden');
     return;
@@ -198,6 +207,50 @@ async function resolve(conflictId, resolution) {
   await send({ type: 'resolveConflict', conflictId, resolution });
   await render();
 }
+
+async function resolveAll(button, resolution, confirmMessage) {
+  const count = parseInt(editEditCountEl.textContent, 10) || 0;
+  if (!count || !confirm(confirmMessage(count))) {
+    return;
+  }
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Working...';
+  const res = await send({ type: 'resolveAllConflicts', conflictType: 'edit-edit', resolution });
+  button.disabled = false;
+  button.textContent = originalText;
+  if (!res.ok && !res.count) {
+    alert(res.error || 'Could not resolve those conflicts');
+    return;
+  }
+  await render();
+}
+
+keepBothAllButton.addEventListener('click', () =>
+  resolveAll(
+    keepBothAllButton,
+    'both',
+    (count) => `Keep both versions for all ${count} of these? Nothing gets deleted - each becomes two separate bookmarks.`
+  )
+);
+
+keepMineAllButton.addEventListener('click', () =>
+  resolveAll(
+    keepMineAllButton,
+    'local',
+    (count) =>
+      `Keep this computer's version for all ${count} of these, discarding the other side's version each time? This can't be undone.`
+  )
+);
+
+keepTheirsAllButton.addEventListener('click', () =>
+  resolveAll(
+    keepTheirsAllButton,
+    'remote',
+    (count) =>
+      `Keep the other computer's version for all ${count} of these, discarding this side's version each time? This can't be undone.`
+  )
+);
 
 manualBackupLink.href = chrome.runtime.getURL('backup.html');
 

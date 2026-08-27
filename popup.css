@@ -251,6 +251,37 @@ button.primary.danger:hover:not(:disabled) {
   font-weight: 700;
 }
 
+.conflictsBulkActions {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.conflictsBulkActions .primary {
+  width: 100%;
+  margin-top: 0;
+}
+
+.bulkHint {
+  font-size: 10.5px;
+  color: #92400e;
+  margin: 6px 0 8px;
+  line-height: 1.4;
+}
+
+.bulkSecondary {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+.bulkSecondary .linkButton {
+  font-size: 11px;
+  color: #92400e;
+}
+
 .conflictsList {
   display: flex;
   flex-direction: column;

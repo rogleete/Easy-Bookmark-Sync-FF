@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Easy Bookmark Sync",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Syncs bookmarks between computers through your own Google Drive.",
   "permissions": [
     "bookmarks",
