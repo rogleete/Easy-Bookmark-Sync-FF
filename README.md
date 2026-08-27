@@ -1,3 +1,4 @@
+![GitHub all releases]
 # Easy Bookmark Sync 
 (open the [INSTALL.md](./INSTALL.md) for first run instructions)
 
