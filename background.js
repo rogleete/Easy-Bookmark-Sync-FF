@@ -1325,11 +1325,28 @@ async function runMergeSync(token, folderId, state) {
           folderLocalIdByStableId.set(stableId, item.localId);
         }
       }
-      // any remote folder nothing local matched still needs to exist locally
+      // any remote folder nothing local matched still needs to exist
+      // locally - but if the shared file has more than one entry for the
+      // same path (a duplicate from earlier corruption), alias every
+      // duplicate onto whichever local folder is already there instead of
+      // creating a new folder per duplicate
+      const handledFolderPaths = new Map();
+      for (const [localId, entry] of Object.entries(mergeIndex)) {
+        if (entry.kind === 'folder' && matchedRemoteFolderIds.has(entry.stableId)) {
+          handledFolderPaths.set(remoteFolderFullPath(entry.stableId, remoteFoldersByStableId), localId);
+        }
+      }
       applyingRemoteChange = true;
       try {
         for (const f of remoteData.folders) {
-          await resolveLocalFolderForRef(f.stableId, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId);
+          const path = remoteFolderFullPath(f.stableId, remoteFoldersByStableId);
+          const existingLocalId = handledFolderPaths.get(path);
+          if (existingLocalId) {
+            folderLocalIdByStableId.set(f.stableId, existingLocalId);
+            continue;
+          }
+          const localId = await resolveLocalFolderForRef(f.stableId, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId);
+          handledFolderPaths.set(path, localId);
         }
       } finally {
         applyingRemoteChange = false;
@@ -1408,12 +1425,21 @@ async function runMergeSync(token, folderId, state) {
         }
       }
 
+      // URLs already accounted for locally - either matched above, or about
+      // to be pulled down below. If the shared file has more than one
+      // entry for the same URL (which can happen after repeated resets),
+      // only the first one is ever pulled down, so duplicates already
+      // sitting in the shared file stop multiplying instead of each
+      // becoming another local copy.
+      const handledUrls = new Set(localSnapshot.filter((i) => i.kind === 'bookmark').map((i) => i.url));
+
       applyingRemoteChange = true;
       try {
         for (const r of remoteData.bookmarks) {
-          if (matchedRemoteBookmarkIds.has(r.stableId)) {
+          if (matchedRemoteBookmarkIds.has(r.stableId) || handledUrls.has(r.url)) {
             continue;
           }
+          handledUrls.add(r.url);
           const parentId = await resolveLocalFolderForRef(r.parentRef, mergeIndex, remoteFoldersByStableId, folderLocalIdByStableId);
           const created = await chrome.bookmarks.create({ parentId, title: r.title, url: r.url });
           mergeIndex[created.id] = {
@@ -1539,8 +1565,16 @@ async function runMergeSync(token, folderId, state) {
           const { localId, entry } = found;
           const remoteChangedSinceSync = r.lastModified > entry.lastSyncedModified;
           const localChangedSinceSync = entry.localModified > entry.lastSyncedModified;
+          const contentIdentical =
+            entry.title === r.title && entry.parentRef === r.parentRef && (isFolder || entry.url === r.url);
 
-          if (remoteChangedSinceSync && localChangedSinceSync) {
+          if (contentIdentical) {
+            // both sides show a change since we last agreed, but the actual
+            // data is the same - nothing to resolve, just bring the
+            // bookkeeping back in line rather than bothering anyone with a
+            // conflict over nothing
+            entry.lastSyncedModified = Math.max(entry.lastSyncedModified, r.lastModified, entry.localModified);
+          } else if (remoteChangedSinceSync && localChangedSinceSync) {
             if (!hasPendingConflict(conflicts, r.stableId)) {
               conflicts.push({
                 id: crypto.randomUUID(),

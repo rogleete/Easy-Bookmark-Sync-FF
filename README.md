@@ -1,4 +1,3 @@
-![GitHub all releases](https://img.shields.io/github/downloads/rogleete/Easy-Bookmark-Sync-FF/total)
 # Easy Bookmark Sync 
 (open the [INSTALL.md](./INSTALL.md) for first run instructions)
 
