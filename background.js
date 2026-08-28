@@ -2194,6 +2194,34 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
         break;
       }
+      case 'connectAndSetRole': {
+        // does the full sign-in AND applies the chosen role as one
+        // sequence in the background, rather than two separate messages
+        // from the popup. Firefox can close the popup mid sign-in if the
+        // OAuth flow ever takes focus away from it (Chrome's popup
+        // survives this; Firefox's doesn't) - if that happens partway
+        // through the old two-message flow, the popup's own script dies
+        // before it can send the second message, leaving someone signed
+        // in but stuck with no role applied. Running both steps here
+        // means the role gets set no matter what happens to the popup.
+        try {
+          await authorizeWithGoogle();
+          const token = await getValidToken(true);
+          await getOrCreateFolder(token);
+          await createInitialBackupIfNeeded(token);
+          const patch = { role: message.role, setupComplete: true };
+          if (message.role === 'master') {
+            patch.dirty = true; // make sure the very first sync actually goes out
+          }
+          await setState(patch);
+          await applyAlarmSchedule();
+          await refreshBadge();
+          sendResponse({ ok: true });
+        } catch (err) {
+          sendResponse({ ok: false, error: err.message });
+        }
+        break;
+      }
       case 'setRole': {
         const patch = { role: message.role, setupComplete: true };
         if (message.role === 'master') {

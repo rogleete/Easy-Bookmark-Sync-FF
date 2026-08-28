@@ -308,16 +308,20 @@ connectButton.addEventListener('click', async () => {
   connectButton.disabled = true;
   connectButton.textContent = 'Connecting...';
 
-  const connectResult = await send({ type: 'connectGoogle' });
-  if (!connectResult.ok) {
-    setupError.textContent = connectResult.error || 'Could not connect to Google. Check config.js has a valid client ID.';
+  // one message that does sign-in AND applies the role together in the
+  // background, so it still completes correctly even if this popup gets
+  // closed partway through (Firefox can do that if the sign-in flow ever
+  // takes focus away from the popup) - a two-step flow here would leave
+  // someone signed in with no role applied if that happened.
+  const result = await send({ type: 'connectAndSetRole', role });
+  if (!result.ok) {
+    setupError.textContent = result.error || 'Could not connect to Google. Check config.js has a valid client ID.';
     setupError.classList.remove('hidden');
     connectButton.disabled = false;
     connectButton.textContent = 'Connect Google Account';
     return;
   }
 
-  await send({ type: 'setRole', role });
   await render();
 });
 
